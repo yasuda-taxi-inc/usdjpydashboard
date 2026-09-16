@@ -4124,8 +4124,8 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     if (statusEl) statusEl.textContent = '取得中…';
        var url = 'https://raw.githubusercontent.com/' + encodeURIComponent(cfg.owner) + '/' +
      encodeURIComponent(cfg.repo) + '/main/signals_history.json';
-   fetch(url)
-    }).then(function (resp) {
+    fetch(url)
+    .then(function (resp) {
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       return resp.text();
     }).then(function (text) {
