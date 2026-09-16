@@ -1,0 +1,4266 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>USD/JPY デイトレード モニター | SBI証券資金管理・需給アルゴリズム統合版</title>
+<meta name="description" content="USD/JPYのデイトレード(数分〜数時間、当日決済)向けダッシュボード。東京仲値・ゴトー日実需フロー、ロンドンJudas Swing検知、SBI証券専用1%リスク連動ロット計算機を統合。完全クライアントサイド動作。" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" />
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><circle cx=%2212%22 cy=%2212%22 r=%2211%22 fill=%22%230a0d12%22/><path d=%22M4 16l4-3 3 2 4-9 3 5 3-2%22 stroke=%22%2338c6c1%22 stroke-width=%222%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/></svg>" />
+
+<style>
+/* ============================================================
+   Base tokens + Design system
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+:root {
+  --text-xs: clamp(0.72rem, 0.68rem + 0.2vw, 0.8rem);
+  --text-sm: clamp(0.82rem, 0.78rem + 0.25vw, 0.92rem);
+  --text-base: clamp(0.95rem, 0.9rem + 0.25vw, 1.05rem);
+  --text-lg: clamp(1.05rem, 0.95rem + 0.55vw, 1.3rem);
+  --text-xl: clamp(1.3rem, 1.05rem + 1vw, 1.9rem);
+
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem;
+  --space-12: 3rem; --space-16: 4rem;
+
+  --radius-sm: 0.375rem; --radius-md: 0.625rem; --radius-lg: 0.9rem; --radius-full: 9999px;
+  --transition-interactive: 160ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  --font-display: 'General Sans', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  --font-body: 'General Sans', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+:root, [data-theme='dark'] {
+  --color-bg: #0a0d12;
+  --color-surface: #10141b;
+  --color-surface-2: #151a22;
+  --color-surface-offset: #1a2029;
+  --color-border: #232a35;
+  --color-divider: #1c222c;
+
+  --color-text: #e7ebf1;
+  --color-text-muted: #8a94a6;
+  --color-text-faint: #545c6b;
+
+  --color-primary: #38c6c1;
+  --color-primary-hover: #52d6d1;
+  --color-primary-highlight: rgba(56, 198, 193, 0.14);
+
+  --color-accent: #f2a53c;
+  --color-accent-highlight: rgba(242, 165, 60, 0.14);
+
+  --color-success: #34d399;
+  --color-success-highlight: rgba(52, 211, 153, 0.14);
+  --color-error: #f2545b;
+  --color-error-highlight: rgba(242, 84, 91, 0.14);
+  --color-warning: #f2a53c;
+  --color-warning-highlight: rgba(242, 165, 60, 0.16);
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 6px 20px rgba(0,0,0,0.45);
+  --shadow-lg: 0 16px 40px rgba(0,0,0,0.55);
+}
+
+[data-theme='light'] {
+  --color-bg: #f4f6f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #fbfcfd;
+  --color-surface-offset: #edf0f3;
+  --color-border: #dde2e8;
+  --color-divider: #e6e9ed;
+
+  --color-text: #171b21;
+  --color-text-muted: #5b6472;
+  --color-text-faint: #98a1ae;
+
+  --color-primary: #0e8f8a;
+  --color-primary-hover: #0b7570;
+  --color-primary-highlight: rgba(14, 143, 138, 0.1);
+
+  --color-accent: #c07417;
+  --color-accent-highlight: rgba(192, 116, 23, 0.12);
+
+  --color-success: #12925f;
+  --color-success-highlight: rgba(18, 146, 95, 0.1);
+  --color-error: #c8323a;
+  --color-error-highlight: rgba(200, 50, 58, 0.1);
+  --color-warning: #c07417;
+  --color-warning-highlight: rgba(192, 116, 23, 0.12);
+
+  --shadow-sm: 0 1px 2px rgba(20,20,30,0.06);
+  --shadow-md: 0 6px 20px rgba(20,20,30,0.08);
+  --shadow-lg: 0 16px 40px rgba(20,20,30,0.12);
+}
+
+body {
+  min-height: 100dvh;
+  height: 100%;
+  line-height: 1.5;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  overflow-x: hidden;
+}
+
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; }
+:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: var(--radius-sm); }
+a { color: inherit; text-decoration: none; }
+.tabular { font-family: var(--font-mono); font-variant-numeric: tabular-nums lining-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-5) var(--space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-block: var(--space-2);
+}
+
+.brand { display: flex; align-items: center; gap: var(--space-3); }
+.brand-mark { width: 36px; height: 36px; flex: none; color: var(--color-accent); }
+.brand-text h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+}
+.brand-text p { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+.topbar-right { display: flex; align-items: center; gap: var(--space-3); }
+
+.live-pill {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-success); flex: none; animation: pulse-dot 1.8s ease-in-out infinite; }
+.live-dot.stale { background: var(--color-text-faint); animation: none; }
+@keyframes pulse-dot { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52,211,153,0.5); } 50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(52,211,153,0); } }
+
+.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: var(--radius-full);
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text-muted); transition: var(--transition-interactive);
+}
+.theme-toggle:hover { color: var(--color-text); border-color: var(--color-text-faint); }
+
+/* Signal panel */
+.signal-panel {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  transition: var(--transition-interactive);
+}
+.signal-panel.signal-buy { border-color: color-mix(in srgb, var(--color-success) 50%, var(--color-border)); background: var(--color-success-highlight); }
+.signal-panel.signal-sell { border-color: color-mix(in srgb, var(--color-error) 50%, var(--color-border)); background: var(--color-error-highlight); }
+.signal-panel.signal-neutral { border-color: var(--color-border); background: var(--color-surface); }
+
+.signal-badge {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: var(--radius-full);
+  font-size: var(--text-xs); font-weight: 700; text-align: center;
+  border: 2px solid var(--color-border); color: var(--color-text-muted);
+  background: var(--color-surface-2);
+}
+.signal-panel.signal-buy .signal-badge { border-color: var(--color-success); color: var(--color-success); }
+.signal-panel.signal-sell .signal-badge { border-color: var(--color-error); color: var(--color-error); }
+.signal-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.signal-label { font-size: var(--text-lg); font-weight: 700; }
+.signal-panel.signal-buy .signal-label { color: var(--color-success); }
+.signal-panel.signal-sell .signal-label { color: var(--color-error); }
+.signal-reason { font-size: var(--text-xs); color: var(--color-text-muted); }
+.signal-meta { font-size: var(--text-xs); color: var(--color-text-faint); white-space: nowrap; overflow-x: auto; max-width: 100%; }
+@media (max-width: 640px) { .signal-meta { white-space: normal; word-break: break-word; } }
+
+/* Strategy panel */
+.strategy-panel {
+  display: flex; flex-direction: column; gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.strategy-panel.strategy-long { border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border)); }
+.strategy-panel.strategy-short { border-color: color-mix(in srgb, var(--color-error) 45%, var(--color-border)); }
+
+.strategy-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.strategy-title { font-size: var(--text-base); font-weight: 700; }
+.strategy-panel.strategy-long .strategy-title { color: var(--color-success); }
+.strategy-panel.strategy-short .strategy-title { color: var(--color-error); }
+.strategy-rr { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+.strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+.strategy-item {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.strategy-item .l { font-size: var(--text-xs); color: var(--color-text-muted); }
+.strategy-item .v { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 700; }
+.strategy-item.entry .v { color: var(--color-text); }
+.strategy-item.stop .v { color: var(--color-error); }
+.strategy-item.tp .v { color: var(--color-success); }
+.strategy-note { font-size: var(--text-xs); color: var(--color-text-faint); }
+
+/* ============================================================
+   [第2段階アップグレード] SBI証券 資金管理＆ロット計算機
+   ============================================================ */
+.risk-calc-card {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.risk-calc-head {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2);
+  border-bottom: 1px solid var(--color-divider);
+  padding-bottom: var(--space-2);
+}
+.risk-calc-title {
+  font-size: var(--text-xs); font-weight: 700; color: var(--color-primary);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.risk-calc-inputs {
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+}
+.risk-input-group {
+  display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--color-text-muted);
+}
+.risk-input-group input, .risk-input-group select {
+  background: var(--color-surface-offset);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: var(--text-xs);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+.risk-input-group input[type="number"] { width: 110px; text-align: right; }
+.risk-calc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-2);
+}
+.risk-calc-stat {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.risk-calc-stat .l { font-size: 0.7rem; color: var(--color-text-muted); }
+.risk-calc-stat .v { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 700; }
+.risk-calc-stat.primary .v { color: var(--color-primary); }
+.risk-calc-stat.warn .v { color: var(--color-warning); }
+.risk-calc-stat.danger .v { color: var(--color-error); }
+.leverage-tag {
+  display: inline-block; font-size: 0.65rem; padding: 1px 6px; border-radius: var(--radius-full);
+  font-weight: 600; margin-left: 4px;
+}
+.leverage-tag.safe { background: var(--color-success-highlight); color: var(--color-success); }
+.leverage-tag.caution { background: var(--color-warning-highlight); color: var(--color-warning); }
+.leverage-tag.danger { background: var(--color-error-highlight); color: var(--color-error); }
+
+/* Divider & Integrated */
+.panel-divider {
+  display: flex; align-items: center; gap: var(--space-3);
+  font-size: var(--text-xs); font-weight: 600; color: var(--color-text-muted);
+  padding-top: var(--space-2);
+}
+.panel-divider::before, .panel-divider::after { content: ''; flex: 1; height: 1px; background: var(--color-divider); }
+
+.integrated-reasons {
+  list-style: none; display: flex; flex-direction: column; gap: 2px;
+  font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 4px;
+}
+.integrated-reasons li { line-height: 1.5; }
+
+/* Session badges */
+.session-badges { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.session-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--text-xs); font-weight: 600;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-divider);
+  background: var(--color-surface-2);
+  color: var(--color-text-faint);
+}
+.session-badge.active {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+  background: var(--color-primary-highlight);
+  color: var(--color-primary);
+}
+.session-badge.overlap {
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  background: var(--color-accent-highlight);
+  color: var(--color-accent);
+}
+.session-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+
+.market-closed-banner {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-divider);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+#event-risk-banner:not([hidden]) {
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  background: var(--color-accent-highlight);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.data-freshness-banner { align-items: flex-start; }
+.data-freshness-banner ul { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.data-freshness-banner.soon {
+  border-color: color-mix(in srgb, var(--color-warning) 50%, var(--color-border));
+  background: var(--color-warning-highlight);
+  color: var(--color-warning);
+}
+.data-freshness-banner.urgent {
+  border-color: color-mix(in srgb, var(--color-error) 55%, var(--color-border));
+  background: var(--color-error-highlight);
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+/* KPI grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+}
+.kpi-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-2);
+  transition: var(--transition-interactive);
+  min-width: 0;
+}
+.kpi-label { font-size: var(--text-xs); color: var(--color-text-muted); display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.kpi-value { font-family: var(--font-mono); font-size: var(--text-xl); font-weight: 600; letter-spacing: -0.01em; }
+.kpi-sub { font-size: var(--text-xs); display: flex; align-items: center; gap: var(--space-1); }
+.up { color: var(--color-success); } .down { color: var(--color-error); } .flat { color: var(--color-text-faint); }
+
+/* Panels & Charts */
+.panel-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: var(--space-4);
+}
+@media (max-width: 980px) { .panel-grid { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  min-width: 0;
+}
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.panel-title { font-size: var(--text-base); font-weight: 600; }
+.panel-note { font-size: var(--text-xs); color: var(--color-text-muted); }
+.chart-wrap { position: relative; height: 280px; }
+.chart-wrap.short { height: 160px; }
+
+.table-wrap { overflow-x: auto; overscroll-behavior: contain; border-radius: var(--radius-md); border: 1px solid var(--color-divider); }
+table { border-collapse: collapse; width: 100%; font-size: var(--text-xs); }
+thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--color-surface-offset);
+  text-align: left; padding: var(--space-2) var(--space-3);
+  color: var(--color-text-muted); font-weight: 500;
+  border-bottom: 1px solid var(--color-divider);
+  white-space: nowrap;
+}
+tbody td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-divider); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { transition: var(--transition-interactive); }
+tbody tr.new-row { animation: row-in 900ms ease-out; }
+@keyframes row-in { 0% { background: var(--color-primary-highlight); } 100% { background: transparent; } }
+.empty-row td { text-align: center; color: var(--color-text-faint); padding: var(--space-8); }
+
+.footer {
+  display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5);
+  padding-top: var(--space-4); border-top: 1px solid var(--color-divider);
+  font-size: var(--text-xs); color: var(--color-text-faint);
+}
+.footer a { color: var(--color-text-muted); border-bottom: 1px solid transparent; }
+.footer a:hover { color: var(--color-primary); border-color: var(--color-primary); }
+
+.settings-note { font-size: var(--text-xs); color: var(--color-text-muted); background: var(--color-surface-2); border: 1px solid var(--color-divider); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); }
+
+@media (max-width: 640px) { .app { padding-inline: var(--space-4); } }
+
+/* Regime & Scenarios */
+.regime-badge {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+.regime-badge strong { display: inline-block; margin-right: var(--space-2); font-size: var(--text-sm); }
+.regime-badge.regime-trending { border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border)); background: var(--color-success-highlight); }
+.regime-badge.regime-trending strong { color: var(--color-success); }
+.regime-badge.regime-ranging { border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border)); background: var(--color-primary-highlight); }
+.regime-badge.regime-ranging strong { color: var(--color-primary); }
+.regime-badge.regime-transitional { border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border)); background: var(--color-warning-highlight); }
+.regime-badge.regime-transitional strong { color: var(--color-warning); }
+
+.factor-breakdown { display: flex; flex-direction: column; gap: var(--space-4); }
+.factor-row { display: flex; flex-direction: column; gap: var(--space-2); }
+.factor-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.factor-name { font-size: var(--text-sm); font-weight: 600; }
+.factor-weight { font-size: var(--text-xs); color: var(--color-text-muted); font-family: var(--font-mono); }
+.factor-bar {
+  position: relative; height: 10px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.factor-bar-center { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--color-text-faint); opacity: 0.5; }
+.factor-bar-fill { position: absolute; top: 0; bottom: 0; transition: width var(--transition-interactive); }
+.factor-bar-fill.pos { background: var(--color-success); border-radius: 0 var(--radius-full) var(--radius-full) 0; }
+.factor-bar-fill.neg { background: var(--color-error); border-radius: var(--radius-full) 0 0 var(--radius-full); }
+.factor-detail { font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.5; }
+
+.scenario-container { display: flex; flex-direction: column; gap: var(--space-4); }
+.scenario-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--color-surface-2);
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.scenario-card.primary { border-width: 2px; background: var(--color-surface); }
+.scenario-card.strategy-long.primary { border-color: color-mix(in srgb, var(--color-success) 55%, var(--color-border)); }
+.scenario-card.strategy-short.primary { border-color: color-mix(in srgb, var(--color-error) 55%, var(--color-border)); }
+.scenario-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
+.scenario-title { font-size: var(--text-sm); font-weight: 700; }
+.scenario-card.strategy-long .scenario-title { color: var(--color-success); }
+.scenario-card.strategy-short .scenario-title { color: var(--color-error); }
+.scenario-flag {
+  font-size: var(--text-xs); font-weight: 600;
+  padding: 2px var(--space-2); border-radius: var(--radius-full);
+  background: var(--color-warning-highlight); color: var(--color-warning);
+}
+.scenario-trigger {
+  font-size: var(--text-xs); color: var(--color-text);
+  background: var(--color-surface-offset);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  line-height: 1.5;
+}
+.scenario-card .strategy-item .v small { font-size: 0.85em; color: var(--color-text-muted); font-weight: 500; }
+
+.invalidation-list {
+  list-style: none; display: flex; flex-direction: column; gap: var(--space-2);
+  font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.6;
+}
+.invalidation-list li { padding-left: var(--space-4); position: relative; }
+.invalidation-list li::before { content: '⚑'; position: absolute; left: 0; color: var(--color-text-faint); }
+
+/* [修正1/2] API残量・確定足ステータス表示 */
+.api-status {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.api-status.up    { border-color: color-mix(in srgb, var(--color-success) 35%, var(--color-border)); }
+.api-status.flat  { border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border)); }
+.api-status.down  { border-color: color-mix(in srgb, var(--color-error) 55%, var(--color-border)); color: var(--color-error); }
+.api-status-sep   { opacity: 0.4; }
+.api-status-note  { color: var(--color-warning); }
+
+/* [#14] 検証エンジン */
+.hist-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.hist-status { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-muted); }
+.jbtn {
+  font-family: var(--font-body); font-size: var(--text-xs); font-weight: 600;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface-offset); color: var(--color-text);
+  cursor: pointer; transition: var(--transition-interactive);
+}
+.jbtn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.jbtn.ghost { background: transparent; color: var(--color-text-muted); }
+.jbtn.danger:hover { border-color: var(--color-error); color: var(--color-error); }
+.empty-box {
+  padding: var(--space-3); text-align: center;
+  font-size: var(--text-xs); color: var(--color-text-faint);
+  border: 1px dashed var(--color-divider); border-radius: var(--radius-md);
+}
+.calib-split { display: grid; grid-template-columns: 1fr; gap: var(--space-3); margin-top: var(--space-3); }
+@media (min-width: 720px) { .calib-split { grid-template-columns: 1fr 1fr; } }
+.thin-row { opacity: 0.55; }
+.thin-tag {
+  font-size: 0.68em; font-weight: 600; padding: 1px 5px; border-radius: var(--radius-full);
+  background: var(--color-warning-highlight); color: var(--color-warning);
+}
+
+/* ベースライン比較 */
+.baseline-box {
+  margin: var(--space-3) 0;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: var(--space-3); background: var(--color-surface-2);
+}
+.baseline-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: var(--space-2) 0; font-size: var(--text-xs); color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-divider);
+}
+.baseline-row:last-of-type { border-bottom: none; }
+.baseline-row.edge { font-weight: 700; font-size: var(--text-sm); color: var(--color-text); border-top: 1px solid var(--color-border); margin-top: var(--space-1); }
+.baseline-row.edge.up span:last-child { color: var(--color-success); }
+.baseline-row.edge.down span:last-child { color: var(--color-error); }
+.baseline-row.edge.flat span:last-child { color: var(--color-warning); }
+.baseline-note { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.6; }
+
+/* 折りたたみパネル */
+.collapsible .collapse-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  width: 100%; margin: 0; padding: 0; border: none; background: none;
+  color: inherit; text-align: left; cursor: pointer; font: inherit;
+}
+.collapsible .collapse-head:hover .panel-title { color: var(--color-primary); }
+.collapse-icon {
+  flex: none; width: 10px; height: 10px; margin-right: 2px;
+  border-right: 2px solid var(--color-text-muted); border-bottom: 2px solid var(--color-text-muted);
+  transform: rotate(45deg); transition: transform 0.18s ease;
+}
+.collapsible:not(.collapsed) .collapse-icon { transform: rotate(-135deg); }
+.collapsible.collapsed .collapse-body { display: none; }
+.collapsible:not(.collapsed) .collapse-body { margin-top: var(--space-3); }
+.collapsible .collapse-body > .panel-note { display: block; margin-bottom: var(--space-3); }
+
+/* [#9] 要因分解 */
+.decomp-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+@media (min-width: 720px) { .decomp-grid { grid-template-columns: 1fr 1fr; } }
+.decomp-block { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); background: var(--color-surface-2); }
+.decomp-title { display: flex; align-items: baseline; justify-content: space-between; font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-2); }
+.decomp-total { font-size: var(--text-base); font-weight: 700; }
+.decomp-bar { display: flex; height: 26px; border-radius: var(--radius-sm); overflow: hidden; background: var(--color-surface-offset); }
+.decomp-seg { display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; white-space: nowrap; overflow: hidden; min-width: 0; }
+.decomp-seg.usd { background: color-mix(in srgb, var(--color-primary) 55%, transparent); color: var(--color-text); }
+.decomp-seg.jpy { background: color-mix(in srgb, var(--color-accent) 55%, transparent); color: var(--color-text); }
+.decomp-seg.neg { opacity: 0.55; }
+.decomp-meta { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted); }
+.decomp-label { margin-top: var(--space-2); display: inline-block; font-size: var(--text-xs); font-weight: 700; padding: 2px 10px; border-radius: var(--radius-full); background: var(--color-surface-offset); color: var(--color-text-muted); }
+.decomp-label.jpy_weak, .decomp-label.both_up { background: var(--color-success-highlight); color: var(--color-success); }
+.decomp-label.jpy_strong, .decomp-label.both_down { background: var(--color-error-highlight); color: var(--color-error); }
+.decomp-label.usd_strong, .decomp-label.usd_weak { background: var(--color-primary-highlight); color: var(--color-primary); }
+.decomp-label.offset, .decomp-label.quiet { background: var(--color-warning-highlight); color: var(--color-warning); }
+
+/* [#6] 相関マトリクス */
+.corr-wrap table { font-size: var(--text-xs); }
+.corr-wrap th { font-weight: 600; color: var(--color-text-muted); white-space: nowrap; }
+.corr-diag { color: var(--color-text-faint); }
+.corr-hot { color: var(--color-error); font-weight: 700; background: var(--color-error-highlight); }
+.factor-note { font-size: var(--text-xs); color: var(--color-warning); margin-bottom: var(--space-2); }
+
+/* 市場コンディション(メイン表示) */
+.cond-panel {
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  background: var(--color-surface-2); padding: var(--space-4); margin-bottom: var(--space-4);
+}
+.cond-headline { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.01em; }
+.cond-headline.up { color: var(--color-success); }
+.cond-headline.down { color: var(--color-error); }
+.cond-headline.flat { color: var(--color-text); }
+.cond-sub { margin-top: var(--space-1); font-size: var(--text-sm); color: var(--color-text-muted); }
+.cond-grid { margin-top: var(--space-3); margin-bottom: var(--space-3); }
+.cond-model {
+  margin-top: var(--space-3); padding-top: var(--space-2);
+  border-top: 1px solid var(--color-divider);
+  font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-faint);
+}
+.stop-guide { margin-bottom: var(--space-3); }
+
+/* 時間帯適性パネル (静的バックテスト: 245日・休場除外38,558本) */
+.hourprof-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.hourprof-badge {
+  font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.01em;
+}
+.hourprof-badge.tier-ACTIVE { color: var(--color-success); }
+.hourprof-badge.tier-COND { color: var(--color-primary); }
+.hourprof-badge.tier-AVOID { color: var(--color-error); }
+.hourprof-sub { color: var(--color-text-muted); font-size: var(--text-sm); margin-top: var(--space-1); }
+.hourprof-mr {
+  display: inline-flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3);
+  font-size: var(--text-sm); color: var(--color-warning);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 40%, var(--color-border));
+  background: var(--color-warning-highlight); border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+.hourprof-strip { display: flex; gap: 2px; align-items: flex-end; height: 44px; margin-top: var(--space-4); }
+.hourprof-strip i { flex: 1; border-radius: 2px 2px 0 0; opacity: 0.45; display: block; }
+.hourprof-strip i.now { opacity: 1; box-shadow: 0 0 0 1px var(--color-text); }
+.hourprof-strip i.tier-ACTIVE { background: var(--color-success); }
+.hourprof-strip i.tier-COND { background: var(--color-primary); }
+.hourprof-strip i.tier-AVOID { background: var(--color-error); }
+.hourprof-axis { display: flex; justify-content: space-between; font-size: var(--text-xs); color: var(--color-text-faint); margin-top: var(--space-1); font-family: var(--font-mono); }
+.hourprof-legend { display: flex; gap: var(--space-4); margin-top: var(--space-3); font-size: var(--text-xs); color: var(--color-text-muted); flex-wrap: wrap; }
+.hourprof-legend span { display: inline-flex; align-items: center; gap: var(--space-1); }
+.hourprof-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.stop-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: var(--space-2) 0; border-bottom: 1px solid var(--color-divider);
+  font-size: var(--text-sm); color: var(--color-text);
+}
+.stop-row:last-of-type { border-bottom: none; }
+.stop-row span:last-child { font-weight: 700; }
+.stop-row.sub { font-size: var(--text-xs); color: var(--color-text-muted); }
+.stop-row.sub span:last-child { font-weight: 600; }
+
+/* 検証パネルのデータ操作メニュー(誤操作防止のため折りたたむ) */
+.hist-menu-btn {
+  margin-left: auto; flex: none;
+  width: 32px; height: 28px; line-height: 1;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface-offset); color: var(--color-text-muted);
+  font-size: var(--text-base); cursor: pointer; transition: var(--transition-interactive);
+}
+.hist-menu-btn:hover, .hist-menu-btn.open { border-color: var(--color-primary); color: var(--color-primary); }
+.hist-menu {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2);
+  margin: 0 0 var(--space-3); padding: var(--space-3);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-surface-offset);
+}
+.hist-menu-note { margin: 0; font-size: var(--text-xs); color: var(--color-text-faint); }
+.jbtn.armed { border-color: var(--color-error); color: var(--color-error); font-weight: 700; }
+
+/* 両サイドの取引プラン */
+.plan-head { font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-2); }
+.plan-table { width: 100%; }
+.plan-table th, .plan-table td { padding: var(--space-2); text-align: right; }
+.plan-table thead th { font-size: var(--text-xs); color: var(--color-text-muted); font-weight: 600; }
+.plan-table tbody th { text-align: left; }
+.plan-tag {
+  display: inline-block; font-size: var(--text-xs); font-weight: 700;
+  padding: 2px 8px; border-radius: var(--radius-full); white-space: nowrap;
+}
+.plan-tag.long { background: var(--color-success-highlight); color: var(--color-success); }
+.plan-tag.short { background: var(--color-error-highlight); color: var(--color-error); }
+.plan-meta {
+  display: flex; flex-wrap: wrap; gap: var(--space-3);
+  margin-top: var(--space-2); font-family: var(--font-mono);
+  font-size: var(--text-xs); color: var(--color-text-muted);
+}
+.plan-meta small { color: var(--color-text-faint); margin-left: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ Top bar ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" fill="none" aria-label="USD/JPY Day-Trade Monitor logo">
+        <circle cx="20" cy="20" r="18.5" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+        <path d="M5 24l5.5-5 4.5 3 4.5-14 4.5 10 4.5-3 6.5 3" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="14" cy="19" r="1.6" fill="currentColor"/>
+        <circle cx="23" cy="8" r="1.6" fill="currentColor"/>
+      </svg>
+      <div class="brand-text">
+        <h1>USD/JPY デイトレード モニター</h1>
+        <p>東京仲値・ゴトー日実需 / ロンドンJudas Swing / SBI証券ロット計算機</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="live-pill"><span class="live-dot" id="live-dot"></span><span id="last-updated">接続中…</span></span>
+      <button class="theme-toggle" data-theme-toggle aria-label="Switch to light mode">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============ API / data status ============ -->
+  <div class="api-status" id="api-status"></div>
+
+  <!-- ============ Event risk banner ============ -->
+  <div class="market-closed-banner" id="event-risk-banner" hidden></div>
+
+  <!-- ============ Buy/Sell signal ============ -->
+  <section class="cond-panel" id="cond-panel" role="status">
+    <div class="cond-headline flat" id="cond-headline">算出中…</div>
+    <div class="cond-sub" id="cond-sub">5分足・1時間足データを蓄積しています</div>
+    <div class="kpi-grid cond-grid" id="cond-grid"></div>
+    <ul class="integrated-reasons" id="cond-notes"></ul>
+    <div class="cond-model" id="cond-model">値幅モデル: 初期化中</div>
+  </section>
+
+  <!-- ============ 時間帯適性 (静的バックテスト: 245日実データ) ============ -->
+  <section class="panel" id="hourprof-panel">
+    <div class="panel-head">
+      <span class="panel-title">時間帯適性</span>
+      <span class="panel-note">2026年1月8日〜9月11日・休場時間除外38,558本(5分足)の統計検証</span>
+    </div>
+    <div class="hourprof-head">
+      <div>
+        <div class="hourprof-badge" id="hourprof-badge">算出中…</div>
+        <div class="hourprof-sub" id="hourprof-sub">—</div>
+      </div>
+    </div>
+    <div id="hourprof-mr-wrap"></div>
+    <div class="hourprof-strip" id="hourprof-strip"></div>
+    <div class="hourprof-axis"><span>0時</span><span>6時</span><span>12時</span><span>18時</span><span>23時</span></div>
+    <div class="hourprof-legend">
+      <span><i style="background:var(--color-success)"></i>取引に向く時間帯</span>
+      <span><i style="background:var(--color-primary)"></i>条件つき</span>
+      <span><i style="background:var(--color-error)"></i>見送り推奨</span>
+    </div>
+    <p class="strategy-note">
+      上の「想定変動幅」モデルはブラウザ内で継続学習する値幅の大きさの予測です。
+      こちらは別の検定で、上半期(上昇局面)・下半期(下落局面)の両方で結果が一致した時間帯だけを採用しています。
+      値幅が大きくても、往復して終わりやすい時間帯(下記の注意時間帯)ではブレイク追随を避けてください。
+      方向性そのものについては425通りの条件と定番パターン8種を検定しましたが、優位性は確認できませんでした。
+    </p>
+  </section>
+
+  
+
+  
+
+  
+
+  
+
+  
+
+    <!-- ============ Charts ============ -->
+  <section class="panel-grid">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">価格 &amp; 出来高 (5分足・デイトレード)</span>
+        <span class="panel-note" id="price-chart-note">EMA20 / EMA50 / VWAP / ピボットP / アジア高安</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-price"></canvas></div>
+    </div>
+
+  </section>
+
+  <!-- ============ Momentum indicators ============ -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="panel-title">モメンタム指標 (MACD・RSI・ストキャスティクス)</span>
+      <span class="panel-note">MACD(12,26,9)・RSI(14)・Stochastic(14,3,3) — 5分足</span>
+    </div>
+    <div class="chart-wrap short"><canvas id="chart-momentum"></canvas></div>
+  </section>
+
+
+
+  <!-- ============ KPI grid ============ -->
+  <section class="kpi-grid" id="kpi-grid" aria-label="主要指標">
+    <div class="kpi-card" id="kpi-price">
+      <div class="kpi-label">USD/JPY</div>
+      <div class="kpi-value tabular" id="v-price">—</div>
+      <div class="kpi-sub flat" id="v-price-sub">本日 —</div>
+    </div>
+    <div class="kpi-card" id="kpi-htf">
+      <div class="kpi-label">上位足トレンド (1時間足)</div>
+      <div class="kpi-value" id="v-htf">—</div>
+      <div class="kpi-sub flat" id="v-htf-sub">EMA20 / EMA50</div>
+    </div>
+    <div class="kpi-card" id="kpi-pivot">
+      <div class="kpi-label">ピボットポイント (前日基準)</div>
+      <div class="kpi-value tabular" id="v-pivot">—</div>
+      <div class="kpi-sub flat" id="v-pivot-sub">R1 / S1</div>
+    </div>
+    <div class="kpi-card" id="kpi-vwap">
+      <div class="kpi-label">セッションVWAP</div>
+      <div class="kpi-value tabular" id="v-vwap">—</div>
+      <div class="kpi-sub flat" id="v-vwap-sub">価格との乖離</div>
+    </div>
+    <div class="kpi-card" id="kpi-spx">
+      <div class="kpi-label">S&amp;P500 (リスクセンチメント)</div>
+      <div class="kpi-value tabular" id="v-spx">—</div>
+      <div class="kpi-sub flat" id="v-spx-sub">判定中…</div>
+    </div>
+    <div class="kpi-card" id="kpi-nikkei">
+      <div class="kpi-label">日経平均</div>
+      <div class="kpi-value tabular" id="v-nikkei">—</div>
+      <div class="kpi-sub flat" id="v-nikkei-sub">判定中…</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="panel-title">経済指標カレンダー</span>
+      <span class="panel-note">FOMC・BOJ会合・米CPI・米雇用統計(NFP) — 直前36時間は要警戒表示</span>
+    </div>
+    <div class="market-closed-banner data-freshness-banner" id="data-freshness-banner" hidden></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>イベント</th><th>予定日</th><th>残り時間</th></tr>
+        </thead>
+        <tbody id="event-calendar-body">
+          <tr class="empty-row"><td colspan="3">データを算出中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="strategy-note">FOMC・BOJ・米CPIは会合日程が確定次第の手動更新値、米雇用統計(NFP)は「毎月第1金曜日」のルールに基づき自動計算しています。</p>
+  </section>
+
+  
+
+  
+
+  <!-- ============ セッション別値幅 (折りたたみ) ============ -->
+  <section class="panel collapsible collapsed" data-collapse="session-range">
+    <button class="panel-head collapse-head" type="button" aria-expanded="false" aria-controls="collapse-session-range">
+      <span class="panel-title">セッション別値幅</span>
+      <span class="collapse-icon" aria-hidden="true"></span>
+    </button>
+    <div class="collapse-body" id="collapse-session-range">
+      <p class="panel-note">東京 / ロンドン / NY · 直近5営業日(1時間足集計)</p>
+      <div class="chart-wrap short"><canvas id="chart-session"></canvas></div>
+    </div>
+  </section>
+
+
+    <section class="panel collapsible collapsed" data-collapse="decomp">
+    <button class="panel-head collapse-head" type="button" aria-expanded="false" aria-controls="collapse-decomp">
+      <span class="panel-title">USD/JPY 要因分解 — ドル要因 vs 円要因</span>
+      <span class="collapse-icon" aria-hidden="true"></span>
+    </button>
+    <div class="collapse-body" id="collapse-decomp">
+      <p class="panel-note" id="decomp-note">クロス通貨を取得中…</p>
+      <div class="decomp-grid" id="decomp-body">
+      <div class="empty-box">クロス通貨のデータ待ちです</div>
+    </div>
+    <p class="strategy-note" id="decomp-interp">—</p>
+    </div>
+  </section>
+
+  <!-- ============ Session detail table ============ -->
+  <section class="panel collapsible collapsed" data-collapse="session-detail">
+    <button class="panel-head collapse-head" type="button" aria-expanded="false" aria-controls="collapse-session-detail">
+      <span class="panel-title">セッション別 高値・安値 (詳細)</span>
+      <span class="collapse-icon" aria-hidden="true"></span>
+    </button>
+    <div class="collapse-body" id="collapse-session-detail">
+      <p class="panel-note">直近12セッション分 · 1時間足集計</p><div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>日付</th><th>セッション</th><th>高値 / 安値</th><th>値幅</th></tr>
+        </thead>
+        <tbody id="session-table-body">
+          <tr class="empty-row"><td colspan="4">データを取得中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </section>
+
+<!-- ============ [#14/#15] 検証エンジン ============ -->
+  <div class="panel-divider">
+    <span>検証エンジン(値幅予測の記録)</span>
+  </div>
+
+  
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="panel-title">値幅予測の精度検証</span>
+      <span class="panel-note" id="calib-note">記録を読み込み中…</span>
+    </div>
+    <div class="hist-toolbar">
+      <span class="hist-status" id="hist-status">初期化中…</span>
+      <button class="hist-menu-btn" id="btn-hist-menu" type="button" aria-expanded="false" aria-controls="hist-menu" aria-label="データ操作メニュー">⋯</button>
+    </div>
+    <div class="hist-menu" id="hist-menu" hidden>
+      <button class="jbtn ghost" id="btn-hist-export">記録CSVを書き出す</button>
+      <button class="jbtn ghost danger" id="btn-hist-clear">記録をすべて消去</button>
+      <p class="hist-menu-note">消去した記録は元に戻せません。</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>予測四分位</th><th>件数</th><th>予測</th><th>実測</th></tr></thead>
+        <tbody id="calib-body"><tr class="empty-row"><td colspan="4">蓄積中…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="chart-wrap short"><canvas id="chart-calib"></canvas></div>
+    <p class="strategy-note" id="calib-caveat">値幅予測が実際に当たっているかを、この端末の記録で検証します。</p>
+  </section>
+
+  
+
+  
+
+  
+
+    <!-- ============ Trading strategy & SBIロット計算機 ============ -->
+  <section class="strategy-panel" id="strategy-panel">
+    <div class="strategy-head">
+      <span class="strategy-title">損切り幅とロットの目安</span>
+    </div>
+    <div class="stop-guide" id="stop-guide"></div>
+
+    <!-- [第2段階アップグレード] SBI証券 資金管理＆発注ロット計算機 -->
+    <div class="risk-calc-card">
+      <div class="risk-calc-head">
+        <span class="risk-calc-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          SBI証券 発注ロット・資金管理計算機 (レバ25倍)
+        </span>
+        <div class="risk-calc-inputs">
+          <div class="risk-input-group">
+            <label for="cfg-balance">口座残高:</label>
+            <input type="number" id="cfg-balance" value="1000000" step="50000" min="10000" />
+            <span>円</span>
+          </div>
+          <div class="risk-input-group">
+            <label for="cfg-risk">許容リスク:</label>
+            <select id="cfg-risk">
+              <option value="0.5">0.5% (極めて慎重)</option>
+              <option value="1.0" selected>1.0% (標準・推奨)</option>
+              <option value="1.5">1.5% (積極的)</option>
+              <option value="2.0">2.0% (短期勝負)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="risk-calc-grid">
+        <div class="risk-calc-stat">
+          <span class="l">1トレード許容損失額</span>
+          <span class="v tabular" id="calc-loss-amount">—</span>
+        </div>
+        <div class="risk-calc-stat primary">
+          <span class="l">SBI通常 (1Lot=1万通貨)</span>
+          <span class="v tabular" id="calc-standard-lots">—</span>
+        </div>
+        <div class="risk-calc-stat primary">
+          <span class="l">SBIミニ (1Lot=1千通貨)</span>
+          <span class="v tabular" id="calc-mini-lots">—</span>
+        </div>
+        <div class="risk-calc-stat">
+          <span class="l">必要証拠金 (拘束資金)</span>
+          <span class="v tabular" id="calc-margin-req">—</span>
+        </div>
+        <div class="risk-calc-stat" id="stat-leverage-box">
+          <span class="l">実効レバレッジ</span>
+          <span class="v tabular" id="calc-leverage">—</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="strategy-note" id="strategy-note">—</p>
+  </section>
+
+  <!-- ============ ボット シグナル監視パネル (usdjpy-signal-bot連携) ============ -->
+  <section class="panel collapsible" data-collapse="bot-signals">
+    <button class="panel-head collapse-head" type="button" aria-expanded="true" aria-controls="collapse-bot-signals">
+      <span class="panel-title">シグナル履歴(監視ボット)</span>
+      <span class="collapse-icon" aria-hidden="true"></span>
+    </button>
+    <div class="collapse-body" id="collapse-bot-signals">
+      <div class="hist-toolbar">
+        <span class="hist-status" id="botsig-status">初期化中…</span>
+        <button class="hist-menu-btn" id="btn-botsig-settings" type="button" aria-label="接続設定">⚙</button>
+        <button class="hist-menu-btn" id="btn-botsig-refresh" type="button" aria-label="再取得">⟳</button>
+      </div>
+      <div class="hist-menu" id="botsig-settings-panel" hidden>
+        <div class="risk-input-group">
+          <label for="botsig-owner">GitHubユーザー名:</label>
+          <input type="text" id="botsig-owner" placeholder="例: yourname" />
+        </div>
+        <div class="risk-input-group">
+          <label for="botsig-repo">リポジトリ名:</label>
+          <input type="text" id="botsig-repo" placeholder="usdjpy-signal-bot" />
+        </div>
+        <div class="risk-input-group">
+          <label for="botsig-token">読み取り専用PAT:</label>
+          <input type="password" id="botsig-token" placeholder="github_pat_..." autocomplete="off" />
+        </div>
+        <p class="hist-menu-note">
+          このブラウザのlocalStorageにのみ保存され、コード自体には含まれません。
+          GitHubの Settings &gt; Developer settings &gt; Fine-grained tokens で、対象リポジトリのみ・Contents:Read-only 権限で発行してください。
+        </p>
+        <button class="jbtn ghost" id="btn-botsig-save">保存して再取得</button>
+      </div>
+      <p class="panel-note" id="botsig-note">未設定</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>時刻(JST)</th><th>ID</th><th>名称</th><th>方向</th><th>価格</th></tr></thead>
+          <tbody id="botsig-body"><tr class="empty-row"><td colspan="5">未接続(⚙から設定してください)</td></tr></tbody>
+        </table>
+      </div>
+      <p class="strategy-note">usdjpy-signal-botの signals_history.json を直接参照しています。表示のみで、ここから発注は行われません。</p>
+    </div>
+  </section>
+
+  <p class="settings-note">このダッシュボードは売買方向を提示しません。3ヶ月・実効345サンプルのバックテストで方向予測の決定係数はR²=0.012にとどまり、因子の重み調整・符号反転・最適線形結合・決済方法の変更・確信度乗数のいずれも未学習期間で機能しませんでした。一方、予測対象を「次の3時間の値幅」に変えると検証R²=0.559となり、「動かない局面」を88%の精度で判別できました。そのため本システムは①どれだけ動きそうか②今は取引すべき時間帯か③損切り幅をどこに置くか、を示す道具として動作します。方向の判断は利用者が行ってください。投資助言ではありません。</p>
+
+  <footer class="footer">
+    <span>データ提供: <a href="https://twelvedata.com/" target="_blank" rel="noopener">Twelve Data API</a>(為替レート・時系列データ・S&P500・日経平均)。無料プラン枠(1分8リクエスト)で低頻度最適化運用。</span>
+    <span>USD/JPYは1pip=0.01として計算しています。出来高はティックベースの参考値です。テクニカル指標および需給分析はデイトレード向けの参考値であり、投資助言ではありません。</span>
+  </footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ---------------- Theme toggle ---------------- */
+  (function () {
+    var t = document.querySelector('[data-theme-toggle]'), r = document.documentElement;
+    var d = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'dark';
+    r.setAttribute('data-theme', d);
+    t && t.addEventListener('click', function () {
+      d = d === 'dark' ? 'light' : 'dark';
+      r.setAttribute('data-theme', d);
+      t.setAttribute('aria-label', 'Switch to ' + (d === 'dark' ? 'light' : 'dark') + ' mode');
+      t.innerHTML = d === 'dark'
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+      renderPriceChart(); renderMomentumChart(); renderSessionChart();
+    });
+  })();
+
+  /* ---------------- Config (デイトレード向けパラメータ) ---------------- */
+  var CFG = {
+    SYMBOL: 'USD/JPY',
+    TD_API_KEY: '0ee6f79af6fb4ddd8150d4bd7cfbde35',
+    TD_BASE: 'https://api.twelvedata.com/time_series',
+    PIP: 0.01,
+    INTRADAY_INTERVAL: '5min', INTRADAY_OUTPUTSIZE: 500,
+    HOURLY_INTERVAL: '1h', HOURLY_OUTPUTSIZE: 900,
+    PRICE_CHART_BARS: 150,
+
+    /* ============================================================
+       [修正1] APIクレジット管理
+       Twelve Data Basic: 8クレジット/分, 800クレジット/日 (UTC 0時リセット)
+       ============================================================ */
+    API_DAILY_LIMIT: 800,
+    API_SAFETY_MARGIN: 40,          // 手動リロード等の予備枠
+    API_MIN_INTERVAL_MS: 8500,      // 8req/分 の制限を満たす最短間隔
+    API_BUDGET: {                   // カテゴリ別の1日上限 (合計710 + 予備40 < 800)
+      bars5m: 320,                  // 5分足: 足確定ごと = 288/日
+      bars1h: 30,                   // 1時間足: 足確定ごと = 24/日
+      volhist: 30,                  // 値幅モデル学習用の長期5分足: 1時間ごと = 24/日
+      cross:  140,                  // EUR/USD + AUD/USD: 25分ごと × 2シンボル = 116/日
+      quote:  120,                  // ライブ価格: 表示中かつ market open のときのみ
+      risk:    90                   // S&P500 / 日経: 30分ごと × 2シンボル
+    },
+    QUOTE_POLL_MS: 60 * 1000,          // シグナル発生中の間隔
+    QUOTE_POLL_IDLE_MS: 120 * 1000,    // 待機中は頻度を落として枠を温存
+    BAR_CLOSE_DELAY_MS: 8000,       // 足確定の何ms後に取得するか
+    CLOCK_SKEW_MS: 3000,            // 端末時計のズレ許容
+    STALE_THRESHOLD_MS: 6 * 60 * 1000,
+
+    /* ============================================================
+       [修正3] タイムゾーン (サマータイムはIntl APIで自動追随)
+       ============================================================ */
+    TZ_TOKYO: 'Asia/Tokyo',
+    TZ_NY: 'America/New_York',
+    TZ_LONDON: 'Europe/London',
+
+    /* ============================================================
+       [修正4] FX営業日の単一基準 = NY 17:00 アンカー
+       日中レンジ・VWAP・ADR・ピボットを全てこの定義から導出する
+       ============================================================ */
+    FX_DAY_ANCHOR_HOUR: 17,
+    ADR_MIN_BARS_PER_DAY: 12,       // 時間足がこれ未満のFX日はADR算出から除外
+
+    /* ============================================================
+       [#14] 検証エンジン (シグナル履歴)
+       ============================================================ */
+    /* [#3] 判定用の基準を執行用から分離。
+       旧実装は執行用ストップ(ATR×1.4)で2時間判定していたため、
+       1R=41.2pips に対し2時間の最大変動中央値が33.0pipsしかなく、
+       構造的に決着率が32%までしか上がらなかった。 */
+    HIST_HORIZON_BARS: 36,          // アウトカム追跡: 5分足36本 = 3時間先まで
+    JUDGE_ATR_MULT: 0.8,            // 判定用1R (執行用の ATR_STOP_MULT=1.4 とは別物)
+    JUDGE_MIN_R_PIPS: 6,
+    OUTCOME_VERSION: 2,             // 判定基準を変えたら上げる(既存記録を自動再判定)
+    HIST_MAX_DAYS: 180,             // 履歴の保持期間
+    HIST_MIN_SAMPLES: 15,           // これ未満のサンプル数は判断に使わない
+    SCORE_BUCKETS: [-100, -45, -20, -8, 8, 20, 45, 100],
+    MOMENTUM_CHART_BARS: 150,
+    ADR_DAYS: 20,
+    ATR_STOP_MULT: 1.4,
+    MIN_STOP_PIPS: 8,
+    STRUCTURE_LOOKBACK_BARS: 96,
+    RR_TARGETS: [1, 2, 3],
+    ROUND_NUMBER_STEP: 0.50,
+    TARGET_STRUCTURE_BUFFER_PIPS: 2,
+    FLIP_HYSTERESIS_BONUS: 8,
+    ADX_TREND_THRESHOLD: 25,
+
+    /* 金融政策イベントの日程。
+       日米金利差は政策金利のハードコード値で日中まったく変動せず、
+       バックテスト12410件すべてで同一値だった(分散ゼロ=予測力ゼロ)ため撤去した。
+       ここには「いつ動きうるか」という日程だけを残す。 */
+    EVENT_DATES: {
+      nextFomc: '2026-09-16', nextFomcLabel: '9/16(水) 米東部時間14:00',
+      nextBoj: '2026-09-18', nextBojLabel: '9/17-18(木-金)'
+    },
+    /* [修正3] イベント時刻は「現地時間」で保持し、UTC変換時にDSTを自動適用する */
+    EVENT_LOCAL_TIME: {
+      fomc: { tz: 'America/New_York', h: 14, m: 0 },   // 声明発表 米東部14:00
+      cpi:  { tz: 'America/New_York', h: 8,  m: 30 },  // 米東部8:30
+      nfp:  { tz: 'America/New_York', h: 8,  m: 30 },  // 米東部8:30
+      boj:  { tz: 'Asia/Tokyo',       h: 12, m: 0 }    // 日銀公表 目安 正午
+    },
+    /* イベントリスクの段階化。旧実装は36時間ずっと同じ警告を出し、
+       NFP前に丸1日半トレードを止めていた。 */
+    EVENT_STAGES: [
+      { maxH: 0.5,  minH: -0.25, key: 'halt',   label: '発表直前・直後',   text: '新規は見送り。値動きが急拡大します' },
+      { maxH: 2,    minH: -2,    key: 'caution', label: '発表前後',        text: 'ロットを落とす・ストップを広げるなどの調整を' },
+      { maxH: 12,   minH: 0,     key: 'today',   label: '当日',            text: '本日中に発表があります' },
+      { maxH: 36,   minH: 0,     key: 'upcoming',label: '接近中',          text: '予定を確認しておいてください' }
+    ],
+    EVENT_RISK_WINDOW_HOURS: 36,
+    CPI_DATES: ['2026-09-11', '2026-10-14', '2026-11-10', '2026-12-10'],
+    STALE_WARNING_DAYS: 7,
+    CPI_LIST_LOW_THRESHOLD: 1,
+
+    /* 総合判断エンジン */
+    REGIME_LOOKBACK: 100,
+    /* [#5] ADXの絶対値ではなく自己分布内の位置で判定する。
+       旧実装は固定閾値25/20で、観測623件がすべてtrendingになり
+       レンジ用の重み(過熱0.25)が一度も適用されなかった。 */
+    REGIME_ADX_TREND_PCTL: 70,    // percentileRank は 0-100 スケール
+    REGIME_ADX_RANGE_PCTL: 40,
+    REGIME_TREND_ADX: 25,
+    REGIME_RANGE_ADX: 20,
+    REGIME_ATR_EXPAND_PCTL: 40,
+    REGIME_BB_SQUEEZE_PCTL: 30,
+
+    /* 値幅予測モデル (バックテスト検証済み: 検証R² 0.559)
+       方向予測はR²=0.012にとどまり、重み調整・符号反転・最適線形結合・
+       決済方法の変更のいずれも未学習期間で機能しなかった。
+       そのため5因子による方向スコアは撤去し、予測対象を値幅に変更した。 */
+    VOL_HORIZON_BARS: 36,          // 予測対象 = 次の3時間の高安幅
+    VOL_MIN_LOOKBACK: 300,         // 特徴量に288本の実現ボラを使うため
+    VOL_FIT_STRIDE: 3,             // 学習サンプルの間引き
+    VOL_MIN_SAMPLES: 150,
+    VOL_RIDGE_LAMBDA: 5.0,
+    VOL_HISTORY_OUTPUTSIZE: 5000,  // 学習用の長期5分足(1リクエスト=1クレジット)
+    VOL_REFIT_MS: 60 * 60 * 1000,
+
+    /* 損切り・利確の水準 = 予測値幅Pに対する比率。
+       3ヶ月976サンプルの実測から決定(順行側の到達幅の分布):
+         0.30P 到達率63% / 0.50P 到達率43% / 損切り0.50P 到達率43% */
+    STOP_FRACTION_OF_RANGE: 0.50,
+    STOP_FRACTION_MIN: 0.35,
+    STOP_FRACTION_MAX: 0.65,
+    TP1_FRACTION: 0.30,
+    TP2_FRACTION: 0.50,
+    TP1_REACH_PCT: 63,
+    TP2_REACH_PCT: 43,
+    STOP_REACH_PCT: 43,
+    TREND_DIR_MIN_PIPS: 3,         // これ未満のEMA乖離は「方向感なし」とする
+
+    /* ============================================================
+       時間帯適性 (静的バックテスト値・ブラウザ内では再学習しない)
+       ------------------------------------------------------------
+       2026-01-08〜2026-09-11、休場時間(土曜終日+金曜22:00UTC以降+
+       日曜21:00UTC以前)を除外した5分足38,558本から算出。
+       指標17種×セッション5区分×5分位=425セルの条件付き探索と、
+       定番パターン8種の事前登録検定を実施したが、方向性の優位性は
+       Bonferroni補正後0件・単独有意でも期待値ベースで生存0件だった。
+       一方、「1時間の正味変化÷1時間の値幅」で定義した効率指標
+       (ランダムウォークの理論値=0.500)は、1-6月(上昇局面)と
+       7-9月(下落局面)の両方で符号が一致する時間帯が6つあり、
+       うち2つ(5時・12時)はBonferroni補正後も有意だった。
+       この表は値幅モデル(VOL, ブラウザ内オンライン学習)とは独立した、
+       固定の事後検証済みテーブルとして扱う。
+       ============================================================ */
+    HOUR_PROFILE: {
+      0: { tier: 'ACTIVE', eff: 0.543, rng: 23.2, mr: false },
+      1: { tier: 'COND',   eff: 0.479, rng: 17.7, mr: false },
+      2: { tier: 'COND',   eff: 0.488, rng: 18.4, mr: false },
+      3: { tier: 'COND',   eff: 0.510, rng: 16.8, mr: false },
+      4: { tier: 'AVOID',  eff: 0.451, rng: 15.6, mr: true  },
+      5: { tier: 'AVOID',  eff: 0.424, rng: 15.0, mr: true  },
+      6: { tier: 'AVOID',  eff: 0.437, rng: 16.2, mr: true  },
+      7: { tier: 'COND',   eff: 0.483, rng: 12.9, mr: false },
+      8: { tier: 'ACTIVE', eff: 0.527, rng: 18.2, mr: false },
+      9: { tier: 'ACTIVE', eff: 0.559, rng: 26.5, mr: false },
+      10:{ tier: 'COND',   eff: 0.435, rng: 20.9, mr: true  },
+      11:{ tier: 'COND',   eff: 0.473, rng: 17.6, mr: false },
+      12:{ tier: 'AVOID',  eff: 0.424, rng: 15.7, mr: true  },
+      13:{ tier: 'AVOID',  eff: 0.465, rng: 14.6, mr: false },
+      14:{ tier: 'COND',   eff: 0.512, rng: 16.4, mr: false },
+      15:{ tier: 'COND',   eff: 0.457, rng: 21.2, mr: false },
+      16:{ tier: 'ACTIVE', eff: 0.479, rng: 24.3, mr: false },
+      17:{ tier: 'ACTIVE', eff: 0.495, rng: 22.5, mr: false },
+      18:{ tier: 'COND',   eff: 0.456, rng: 18.0, mr: false },
+      19:{ tier: 'COND',   eff: 0.492, rng: 16.7, mr: false },
+      20:{ tier: 'COND',   eff: 0.459, rng: 18.6, mr: false },
+      21:{ tier: 'COND',   eff: 0.436, rng: 23.0, mr: true  },
+      22:{ tier: 'ACTIVE', eff: 0.517, rng: 29.4, mr: false },
+      23:{ tier: 'ACTIVE', eff: 0.487, rng: 25.6, mr: false }
+    },
+    HOUR_TIER_LABEL: { ACTIVE: '取引に向く時間帯', COND: '条件つき', AVOID: '見送り推奨の時間帯' },
+
+    /* [#9] 通貨要因分解 */
+    CROSS_SYMBOLS: ['EUR/USD', 'AUD/USD'],
+    CROSS_OUTPUTSIZE: 400,
+    CROSS_POLL_MS: 25 * 60 * 1000,
+    DECOMP_SHORT_MINUTES: 60,
+    DECOMP_MIN_MOVE_PIPS: 4,
+    DECOMP_LEAD_THRESHOLD: 0.35,
+    DECOMP_OFFSET_COH: 0.60,
+    DECOMP_MULT_MIN: 0.70,
+    DECOMP_MULT_MAX: 1.15,
+
+    ADR_EXHAUSTED_PCT: 90,
+    ADR_CAUTION_PCT: 70,
+    ADR_ROOM_PCT: 50,
+
+    SPX_SYMBOLS: ['SPX', 'SPY'],
+    NKY_SYMBOLS: ['NKY', 'EWJ'],
+    RISK_OFF_DROP_PCT: -1.0,
+    RISK_ON_RISE_PCT: 1.0,
+    RISK_POLL_INTERVAL_MS: 30 * 60 * 1000,   /* [修正1] 15分→30分: 2シンボル×48回=96/日 で枠内に収める */
+    RISK_POLL_INITIAL_DELAY_MS: 20000,
+
+    /* [第2段階] SBI証券 資金管理パラメータ */
+    DEFAULT_ACCOUNT_BALANCE: 1000000,
+    DEFAULT_RISK_PERCENT: 1.0,
+    SBI_LEVERAGE: 25
+  };
+
+  var state = {
+    price: null, prevClose: null, sessionOpen: null,
+    candles5m: [], candles1h: [], candlesD: [],
+    /* [修正2] 確定足のみの配列。判断ロジックは必ずこちらを使う */
+    candles5mClosed: [], candles1hClosed: [],
+    formingBarEndsAt: null,
+    /* [修正4] 現在のFX営業日キー (NY17:00アンカー) */
+    currentFxDay: null,
+    /* クロス通貨と要因分解 / 指標スナップショット / 値幅予測 */
+    crosses: {}, crossErrors: {}, decomp: null, ind: null,
+    candles5mLong: [], condition: null, eventStage: null,
+    lastGoodUpdate: null, priceStale: false, dataDegraded: false,
+    adrPips: null, todayRangePips: null,
+    pivot: null,
+    vwapToday: null,
+    session: null,
+    signal: null,
+    integrated: null,
+    hourProfile: null,
+    lastConfirmedDirection: null,
+    dataFreshnessWarnings: [],
+    spx: null, spxChangePct: null, spxAvailable: null, spxError: null, spxSymbolUsed: null,
+    nikkei: null, nikkeiChangePct: null, nikkeiAvailable: null, nikkeiError: null, nikkeiSymbolUsed: null,
+    eventRisk: null,
+    asianHigh: null, asianLow: null, asianOpen: null,
+    tokyoFlow: null, londonFlow: null,
+    // [第2段階] 口座残高＆リスク
+    accountBalance: CFG.DEFAULT_ACCOUNT_BALANCE,
+    riskPercent: CFG.DEFAULT_RISK_PERCENT
+  };
+
+  /* ============================================================
+     [修正1] APIクレジット・バジェット管理
+     Basic プランは 8クレジット/分・800クレジット/日 (UTC 0時リセット)。
+     旧実装は 5分足を30秒間隔で叩いており 1日約3,290クレジットを消費し、
+     起動から約6時間で枠が枯渇して以降すべて失敗していた。
+     ============================================================ */
+  var budget = {
+    dateKey: null, used: 0, byCat: {}, serverLeft: null,
+
+    utcDayKey: function () { return new Date().toISOString().slice(0, 10); },
+
+    load: function () {
+      var k = this.utcDayKey(), raw = null;
+      try { raw = JSON.parse(localStorage.getItem('td_budget') || 'null'); } catch (e) {}
+      if (raw && raw.dateKey === k) { this.dateKey = k; this.used = raw.used || 0; this.byCat = raw.byCat || {}; }
+      else { this.dateKey = k; this.used = 0; this.byCat = {}; this.save(); }
+    },
+    roll: function () {
+      var k = this.utcDayKey();
+      if (k !== this.dateKey) { this.dateKey = k; this.used = 0; this.byCat = {}; this.save(); }
+    },
+    save: function () {
+      try {
+        localStorage.setItem('td_budget', JSON.stringify({ dateKey: this.dateKey, used: this.used, byCat: this.byCat }));
+      } catch (e) {}
+    },
+    canSpend: function (cat, n) {
+      this.roll();
+      n = n || 1;
+      if (this.used + n > CFG.API_DAILY_LIMIT - CFG.API_SAFETY_MARGIN) return false;
+      var cap = CFG.API_BUDGET[cat];
+      if (cap != null && (this.byCat[cat] || 0) + n > cap) return false;
+      return true;
+    },
+    spend: function (cat, n) {
+      this.roll();
+      n = n || 1;
+      this.used += n;
+      this.byCat[cat] = (this.byCat[cat] || 0) + n;
+      this.save();
+      renderApiStatus();
+    },
+    remaining: function () {
+      this.roll();
+      return Math.max(0, CFG.API_DAILY_LIMIT - CFG.API_SAFETY_MARGIN - this.used);
+    }
+  };
+
+  /* 8req/分 を守るための直列スロットル */
+  var apiGate = { last: 0, chain: Promise.resolve() };
+  function throttled(fn) {
+    var p = apiGate.chain.then(function () {
+      var wait = Math.max(0, CFG.API_MIN_INTERVAL_MS - (Date.now() - apiGate.last));
+      return wait ? new Promise(function (res) { setTimeout(res, wait); }) : null;
+    }).then(function () {
+      apiGate.last = Date.now();
+      return fn();
+    });
+    apiGate.chain = p.then(function () {}, function () {});
+    return p;
+  }
+
+  /* レート制限時の指数バックオフ */
+  var apiBackoffUntil = 0, apiFailStreak = 0;
+  function noteApiSuccess() { apiFailStreak = 0; apiBackoffUntil = 0; }
+  function noteApiError(err) {
+    if (err && err.isRateLimit) {
+      apiFailStreak = Math.min(apiFailStreak + 1, 5);
+      apiBackoffUntil = Date.now() + Math.min(15 * 60000, 30000 * Math.pow(2, apiFailStreak));
+      state.apiBlockedReason = 'レート制限中 (自動再開まで待機)';
+    }
+    renderApiStatus();
+  }
+  function inBackoff() { return Date.now() < apiBackoffUntil; }
+
+  /* ---------------- Fetch helpers ---------------- */
+  function getJSON(url) {
+    return fetch(url, { cache: 'no-store' }).then(function (r) {
+      var left = null;
+      try { left = r.headers.get('api-credits-left'); } catch (e) {}
+      if (left != null && left !== '') budget.serverLeft = parseInt(left, 10);
+      if (r.status === 429) { var e = new Error('レート制限(429)'); e.isRateLimit = true; throw e; }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (res) {
+      /* Twelve Data はレート制限を HTTP 200 + status:error で返すことがある */
+      if (res && res.status === 'error') {
+        var e2 = new Error(res.message || 'Twelve Data API error');
+        if (res.code === 429 || /credit|limit/i.test(res.message || '')) e2.isRateLimit = true;
+        throw e2;
+      }
+      return res;
+    });
+  }
+
+  function fetchTwelveData(interval, outputsize) {
+    var qs = 'symbol=' + encodeURIComponent(CFG.SYMBOL) + '&interval=' + interval +
+      '&outputsize=' + outputsize + '&order=ASC&timezone=UTC&apikey=' + CFG.TD_API_KEY;
+    return getJSON(CFG.TD_BASE + '?' + qs);
+  }
+
+  function parseTwelveDataCandles(res) {
+    var values = res && res.values;
+    if (!values || !values.length) return [];
+    var out = values.map(function (v) {
+      return {
+        t: Date.parse(v.datetime + 'Z'),
+        o: parseFloat(v.open), h: parseFloat(v.high), l: parseFloat(v.low), c: parseFloat(v.close),
+        vol: v.volume != null ? parseFloat(v.volume) : 0
+      };
+    }).filter(function (c) { return !isNaN(c.o) && !isNaN(c.h) && !isNaN(c.l) && !isNaN(c.c) && !isNaN(c.t); });
+    out.sort(function (a, b) { return a.t - b.t; });
+    annotateCandles(out);
+    return out;
+  }
+
+  function fetchTwelveQuote(symbol) {
+    var qs = 'symbol=' + encodeURIComponent(symbol) + '&apikey=' + CFG.TD_API_KEY;
+    return getJSON(CFG.TD_BASE.replace('/time_series', '/quote') + '?' + qs);
+  }
+
+  function parseTwelveQuote(res) {
+    if (!res || res.close == null) return null;
+    return {
+      price: parseFloat(res.close),
+      changePct: res.percent_change != null ? parseFloat(res.percent_change) : null
+    };
+  }
+
+  function fetchQuoteWithFallback(symbols, idx) {
+    idx = idx || 0;
+    if (idx >= symbols.length) return Promise.reject(new Error('候補シンボル全滅'));
+    return fetchTwelveQuote(symbols[idx]).then(function (res) {
+      var q = parseTwelveQuote(res);
+      if (!q) throw new Error('空のレスポンス: ' + symbols[idx]);
+      return { quote: q, symbolUsed: symbols[idx] };
+    }).catch(function (err) {
+      if (idx + 1 >= symbols.length) { err.lastSymbol = symbols[idx]; throw err; }
+      return fetchQuoteWithFallback(symbols, idx + 1);
+    });
+  }
+
+  /* ---------------- Formatters ---------------- */
+  function fmtJpy(n, digits) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    return n.toLocaleString('ja-JP', { minimumFractionDigits: digits != null ? digits : 3, maximumFractionDigits: digits != null ? digits : 3 });
+  }
+  function fmtPips(diff) {
+    if (diff === null || diff === undefined || isNaN(diff)) return '—';
+    var p = diff / CFG.PIP;
+    return (p >= 0 ? '+' : '') + p.toFixed(1) + ' pips';
+  }
+  function fmtPct(n, digits) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    return (n >= 0 ? '+' : '') + n.toFixed(digits != null ? digits : 2) + '%';
+  }
+  function pctClass(n) {
+    if (n === null || n === undefined || isNaN(n)) return 'flat';
+    if (n > 0.001) return 'up';
+    if (n < -0.001) return 'down';
+    return 'flat';
+  }
+  function setText(id, text) { var el = document.getElementById(id); if (el) el.textContent = text; }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  /* ============================================================
+     [修正3] タイムゾーン基盤 — サマータイム自動対応
+     旧実装は UTC時刻をハードコードしていたため、夏時間の約7か月間
+     ロンドン/NYのセッション判定と経済指標時刻が1時間ズレていた。
+     Intl API から実オフセットを取得することで、DST切替に自動追随する。
+     ============================================================ */
+  var _dtfCache = {};
+  function zoneFormatter(tz) {
+    if (!_dtfCache[tz]) {
+      _dtfCache[tz] = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hour12: false,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+    }
+    return _dtfCache[tz];
+  }
+
+  /* 指定時刻におけるゾーンのUTCオフセット(分)。DSTを含む実測値 */
+  function tzOffsetMinutes(date, tz) {
+    var parts = zoneFormatter(tz).formatToParts(date);
+    var o = {};
+    for (var i = 0; i < parts.length; i++) o[parts[i].type] = parts[i].value;
+    var hh = parseInt(o.hour, 10); if (hh === 24) hh = 0;
+    var asUtc = Date.UTC(+o.year, +o.month - 1, +o.day, hh, +o.minute, +o.second);
+    return Math.round((asUtc - Math.floor(date.getTime() / 1000) * 1000) / 60000);
+  }
+
+  /* オフセットは30分バケットでメモ化 (DST境界の解像度としては十分) */
+  var _offCache = {};
+  function tzOffsetMs(ms, tz) {
+    var key = tz + '|' + Math.floor(ms / 1800000);
+    var v = _offCache[key];
+    if (v === undefined) {
+      v = _offCache[key] = tzOffsetMinutes(new Date(ms), tz) * 60000;
+      if (Object.keys(_offCache).length > 6000) _offCache = {};
+    }
+    return v;
+  }
+
+  /* エポックms → 指定ゾーンの暦フィールド (高速版) */
+  function zonedFields(ms, tz) {
+    var d = new Date(ms + tzOffsetMs(ms, tz));
+    return {
+      y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(),
+      h: d.getUTCHours(), min: d.getUTCMinutes(), dow: d.getUTCDay(),
+      dateStr: d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate())
+    };
+  }
+  function jstOf(ms)    { return zonedFields(ms, CFG.TZ_TOKYO); }
+  function nyOf(ms)     { return zonedFields(ms, CFG.TZ_NY); }
+  function londonOf(ms) { return zonedFields(ms, CFG.TZ_LONDON); }
+
+  /* 「ゾーン現地の y/m/d h:m」→ UTCエポックms (DST自動) */
+  function zonedTimeToMs(y, m, d, hour, minute, tz) {
+    var naive = Date.UTC(y, m - 1, d, hour, minute);
+    var off = tzOffsetMinutes(new Date(naive), tz) * 60000;
+    var ms = naive - off;
+    /* DST境界をまたぐ場合の1回再補正 */
+    var off2 = tzOffsetMinutes(new Date(ms), tz) * 60000;
+    if (off2 !== off) ms = naive - off2;
+    return ms;
+  }
+
+  /* 'YYYY-MM-DD' + 現地時刻定義 → UTCエポックms */
+  function eventTimeMs(dateStr, def) {
+    if (!def) return Date.parse(dateStr + 'T12:30:00Z');
+    var p = dateStr.split('-');
+    return zonedTimeToMs(+p[0], +p[1], +p[2], def.h, def.m, def.tz);
+  }
+
+  /* ============================================================
+     [修正4] FX営業日の単一基準 (NY 17:00 アンカー)
+     旧実装は「本日」の定義が UTC日付 / ブラウザTZ / API日足の3種類に
+     分裂しており、ADR消化率の分子と分母が別の日を見ることがあった。
+     ============================================================ */
+  function fxDayKey(ms) {
+    var p = nyOf(ms);
+    var y = p.y, m = p.m, d = p.d;
+    if (p.h >= CFG.FX_DAY_ANCHOR_HOUR) {
+      var nx = new Date(Date.UTC(y, m - 1, d + 1));
+      y = nx.getUTCFullYear(); m = nx.getUTCMonth() + 1; d = nx.getUTCDate();
+    }
+    return y + '-' + pad2(m) + '-' + pad2(d);
+  }
+
+  /* 取得直後に各足へ JST / FX営業日 を1度だけ付与 (以降の再計算を高速化) */
+  function annotateCandles(candles) {
+    for (var i = 0; i < candles.length; i++) {
+      var c = candles[i];
+      var j = jstOf(c.t);
+      c.jd = j.dateStr; c.jh = j.h; c.jm = j.min;
+      c.fx = fxDayKey(c.t);
+    }
+    return candles;
+  }
+
+  /* 時間足を FX営業日 に集計して日足を自前生成する。
+     これにより ADR・ピボット・日中レンジ・VWAP が完全に同じ日境界を共有する。 */
+  function aggregateFxDays(candles) {
+    var map = {}, out = [];
+    for (var i = 0; i < candles.length; i++) {
+      var c = candles[i];
+      var k = c.fx || fxDayKey(c.t);
+      var g = map[k];
+      if (!g) { g = map[k] = { key: k, t: c.t, o: c.o, h: c.h, l: c.l, c: c.c, n: 0 }; out.push(g); }
+      if (c.h > g.h) g.h = c.h;
+      if (c.l < g.l) g.l = c.l;
+      g.c = c.c; g.n++;
+    }
+    out.sort(function (a, b) { return a.t - b.t; });
+    return out;
+  }
+
+  /* ============================================================
+     [修正2] 確定足の抽出 — リペイント防止
+     旧実装は形成中の5分足でMACDクロスやJudas Swingを判定していたため、
+     30秒ごとにシグナルが点滅し、直前の判断が消えていた。
+     ============================================================ */
+  var INTERVAL_MS = { '5min': 5 * 60000, '1h': 60 * 60000, '1day': 24 * 3600000 };
+
+  function closedCandles(candles, intervalMs) {
+    if (!candles || !candles.length) return [];
+    var cutoff = Date.now() - CFG.CLOCK_SKEW_MS;
+    var i = candles.length;
+    while (i > 0 && (candles[i - 1].t + intervalMs) > cutoff) i--;
+    return i === candles.length ? candles.slice() : candles.slice(0, i);
+  }
+
+  function refreshClosedSeries() {
+    state.candles5mClosed = closedCandles(state.candles5m, INTERVAL_MS['5min']);
+    state.candles1hClosed = closedCandles(state.candles1h, INTERVAL_MS['1h']);
+    var last = state.candles5m.length ? state.candles5m[state.candles5m.length - 1] : null;
+    state.formingBarEndsAt = last ? last.t + INTERVAL_MS['5min'] : null;
+  }
+
+  /* 5分足を再取得しない間、ライブ価格で形成中足だけを更新する。
+     判断ロジックは確定足しか見ないため、これによるリペイントは起きない。 */
+  function updateFormingBar(price) {
+    var arr = state.candles5m;
+    if (!arr.length || price == null || isNaN(price)) return;
+    var last = arr[arr.length - 1];
+    if (last.t + INTERVAL_MS['5min'] > Date.now() - CFG.CLOCK_SKEW_MS) {
+      last.c = price;
+      if (price > last.h) last.h = price;
+      if (price < last.l) last.l = price;
+    }
+  }
+
+  /* ---------------- テクニカル指標ライブラリ ---------------- */
+  function sma(values, period) {
+    var out = new Array(values.length).fill(null);
+    var sum = 0;
+    for (var i = 0; i < values.length; i++) {
+      sum += values[i];
+      if (i >= period) sum -= values[i - period];
+      if (i >= period - 1) out[i] = sum / period;
+    }
+    return out;
+  }
+
+  function ema(values, period) {
+    var out = new Array(values.length).fill(null);
+    if (values.length < period) return out;
+    var k = 2 / (period + 1);
+    var seed = 0;
+    for (var i = 0; i < period; i++) seed += values[i];
+    out[period - 1] = seed / period;
+    for (var i = period; i < values.length; i++) out[i] = values[i] * k + out[i - 1] * (1 - k);
+    return out;
+  }
+
+  function macd(closes, fastP, slowP, signalP) {
+    var emaFast = ema(closes, fastP), emaSlow = ema(closes, slowP);
+    var macdLine = closes.map(function (_, i) {
+      if (emaFast[i] == null || emaSlow[i] == null) return null;
+      return emaFast[i] - emaSlow[i];
+    });
+    var validStart = macdLine.findIndex(function (v) { return v != null; });
+    var signalLine = new Array(closes.length).fill(null);
+    if (validStart >= 0) {
+      var sig = ema(macdLine.slice(validStart), signalP);
+      for (var i = 0; i < sig.length; i++) signalLine[validStart + i] = sig[i];
+    }
+    var hist = closes.map(function (_, i) {
+      if (macdLine[i] == null || signalLine[i] == null) return null;
+      return macdLine[i] - signalLine[i];
+    });
+    return { macd: macdLine, signal: signalLine, hist: hist };
+  }
+
+  function calcRsiSeries(values, period) {
+    var out = new Array(values.length).fill(null);
+    if (values.length < period + 1) return out;
+    var gains = 0, losses = 0, i;
+    for (i = 1; i <= period; i++) { var d = values[i] - values[i - 1]; if (d >= 0) gains += d; else losses -= d; }
+    var avgGain = gains / period, avgLoss = losses / period;
+    out[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    for (i = period + 1; i < values.length; i++) {
+      var dd = values[i] - values[i - 1];
+      var g = dd > 0 ? dd : 0, l = dd < 0 ? -dd : 0;
+      avgGain = (avgGain * (period - 1) + g) / period;
+      avgLoss = (avgLoss * (period - 1) + l) / period;
+      out[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    }
+    return out;
+  }
+
+  function stochastic(candles, kPeriod, kSmooth, dPeriod) {
+    var len = candles.length;
+    var rawK = new Array(len).fill(null);
+    for (var i = kPeriod - 1; i < len; i++) {
+      var hi = -Infinity, lo = Infinity;
+      for (var j = i - kPeriod + 1; j <= i; j++) { if (candles[j].h > hi) hi = candles[j].h; if (candles[j].l < lo) lo = candles[j].l; }
+      rawK[i] = (hi === lo) ? 50 : ((candles[i].c - lo) / (hi - lo)) * 100;
+    }
+    var kFull = sma(rawK.map(function (v) { return v == null ? 0 : v; }), kSmooth);
+    var kSmoothed = kFull.map(function (v, i) { return rawK[i] == null ? null : v; });
+    var dLine = sma(kSmoothed.map(function (v) { return v == null ? 0 : v; }), dPeriod).map(function (v, i) { return kSmoothed[i] == null ? null : v; });
+    return { k: kSmoothed, d: dLine };
+  }
+
+  function bollinger(closes, period, mult) {
+    var mid = sma(closes, period);
+    var upper = new Array(closes.length).fill(null), lower = new Array(closes.length).fill(null), percentB = new Array(closes.length).fill(null);
+    for (var i = period - 1; i < closes.length; i++) {
+      var mean = mid[i], variance = 0;
+      for (var j = i - period + 1; j <= i; j++) variance += Math.pow(closes[j] - mean, 2);
+      variance /= period;
+      var sd = Math.sqrt(variance);
+      upper[i] = mean + mult * sd; lower[i] = mean - mult * sd;
+      percentB[i] = (upper[i] === lower[i]) ? 0.5 : (closes[i] - lower[i]) / (upper[i] - lower[i]);
+    }
+    return { mid: mid, upper: upper, lower: lower, percentB: percentB };
+  }
+
+  function atrSeries(candles, period) {
+    var len = candles.length;
+    var tr = new Array(len).fill(0);
+    for (var i = 0; i < len; i++) {
+      if (i === 0) { tr[i] = candles[i].h - candles[i].l; continue; }
+      tr[i] = Math.max(candles[i].h - candles[i].l, Math.abs(candles[i].h - candles[i - 1].c), Math.abs(candles[i].l - candles[i - 1].c));
+    }
+    var out = new Array(len).fill(null);
+    if (len <= period) return out;
+    var sum = 0;
+    for (var i = 1; i <= period; i++) sum += tr[i];
+    out[period] = sum / period;
+    for (var i = period + 1; i < len; i++) out[i] = (out[i - 1] * (period - 1) + tr[i]) / period;
+    return out;
+  }
+
+  function adxSeries(candles, period) {
+    var len = candles.length;
+    var plusDM = new Array(len).fill(0), minusDM = new Array(len).fill(0), tr = new Array(len).fill(0);
+    for (var i = 1; i < len; i++) {
+      var upMove = candles[i].h - candles[i - 1].h, downMove = candles[i - 1].l - candles[i].l;
+      plusDM[i] = (upMove > downMove && upMove > 0) ? upMove : 0;
+      minusDM[i] = (downMove > upMove && downMove > 0) ? downMove : 0;
+      tr[i] = Math.max(candles[i].h - candles[i].l, Math.abs(candles[i].h - candles[i - 1].c), Math.abs(candles[i].l - candles[i - 1].c));
+    }
+    function wilderSmooth(arr) {
+      var out = new Array(arr.length).fill(null), sum = 0;
+      for (var i = 1; i <= period; i++) sum += arr[i];
+      out[period] = sum;
+      for (var i = period + 1; i < arr.length; i++) out[i] = out[i - 1] - (out[i - 1] / period) + arr[i];
+      return out;
+    }
+    var trS = wilderSmooth(tr), plusS = wilderSmooth(plusDM), minusS = wilderSmooth(minusDM);
+    var plusDI = new Array(len).fill(null), minusDI = new Array(len).fill(null), dx = new Array(len).fill(null);
+    for (var i = period; i < len; i++) {
+      if (trS[i]) {
+        plusDI[i] = 100 * plusS[i] / trS[i];
+        minusDI[i] = 100 * minusS[i] / trS[i];
+        dx[i] = (plusDI[i] + minusDI[i]) ? 100 * Math.abs(plusDI[i] - minusDI[i]) / (plusDI[i] + minusDI[i]) : 0;
+      }
+    }
+    var adx = new Array(len).fill(null);
+    var firstDx = dx.findIndex(function (v) { return v != null; });
+    if (firstDx >= 0 && len - firstDx >= period) {
+      var sum = 0;
+      for (var i = firstDx; i < firstDx + period; i++) sum += dx[i];
+      adx[firstDx + period - 1] = sum / period;
+      for (var i = firstDx + period; i < len; i++) adx[i] = (adx[i - 1] * (period - 1) + dx[i]) / period;
+    }
+    return { plusDI: plusDI, minusDI: minusDI, adx: adx };
+  }
+
+  function vwapSeries(candles5m) {
+    var out = new Array(candles5m.length).fill(null);
+    var cumPV = 0, cumV = 0, curDay = null;
+    for (var i = 0; i < candles5m.length; i++) {
+      var c = candles5m[i];
+      /* [修正4] リセット基準を FX営業日 (NY17:00) に統一 */
+      var day = c.fx || fxDayKey(c.t);
+      if (day !== curDay) { curDay = day; cumPV = 0; cumV = 0; }
+      var typical = (c.h + c.l + c.c) / 3;
+      var vol = c.vol > 0 ? c.vol : 1;
+      cumPV += typical * vol; cumV += vol;
+      out[i] = cumV > 0 ? cumPV / cumV : typical;
+    }
+    return out;
+  }
+
+  function classicPivots(prevDay) {
+    if (!prevDay) return null;
+    var H = prevDay.h, L = prevDay.l, C = prevDay.c;
+    var P = (H + L + C) / 3;
+    return {
+      p: P,
+      r1: 2 * P - L, s1: 2 * P - H,
+      r2: P + (H - L), s2: P - (H - L),
+      r3: H + 2 * (P - L), s3: L - 2 * (H - P)
+    };
+  }
+
+  function findSwingLow(candles, lookback) {
+    var slice = candles.slice(-lookback);
+    return Math.min.apply(null, slice.map(function (c) { return c.l; }));
+  }
+  function findSwingHigh(candles, lookback) {
+    var slice = candles.slice(-lookback);
+    return Math.max.apply(null, slice.map(function (c) { return c.h; }));
+  }
+
+  /* ---------------- セッション判定 & 日本時間(JST)ヘルパー ---------------- */
+  /* [修正3] セッション境界はすべて「現地時間」で定義し、DSTに自動追随させる。
+     旧実装は UTC固定ブロック (london 8-17 / ny 13-22) で冬時間専用だった。 */
+  function getSessionInfo(date) {
+    var ms = (date || new Date()).getTime();
+    var ny = nyOf(ms), ldn = londonOf(ms), tky = jstOf(ms);
+
+    /* 週末クローズ: NY金17:00 〜 NY日17:00 (夏冬でUTC時刻が1時間動く) */
+    var closed = (ny.dow === 6) ||
+                 (ny.dow === 5 && ny.h >= CFG.FX_DAY_ANCHOR_HOUR) ||
+                 (ny.dow === 0 && ny.h < CFG.FX_DAY_ANCHOR_HOUR);
+    if (closed) {
+      return { tokyo: false, london: false, ny: false, overlap: false, active: [],
+               weight: 0, closed: true, jstHour: tky.h, nyHour: ny.h, londonHour: ldn.h };
+    }
+
+    var tokyo  = tky.h >= 9 && tky.h < 18;   // 東京 09:00-18:00 JST
+    var london = ldn.h >= 8 && ldn.h < 17;   // ロンドン 08:00-17:00 現地
+    var nyS    = ny.h  >= 8 && ny.h  < 17;   // NY 08:00-17:00 現地
+    var overlap = london && nyS;
+
+    var active = [];
+    if (tokyo) active.push('東京');
+    if (london) active.push('ロンドン');
+    if (nyS) active.push('NY');
+
+    var weight;
+    if (overlap) weight = 1.25;
+    else if (london || nyS) weight = 1.0;
+    else if (tokyo) weight = 0.65;
+    else weight = 0.45;
+
+    return {
+      tokyo: tokyo, london: london, ny: nyS, overlap: overlap, active: active,
+      weight: weight, closed: false,
+      jstHour: tky.h, nyHour: ny.h, londonHour: ldn.h,
+      usDst: tzOffsetMinutes(new Date(ms), CFG.TZ_NY) === -240,
+      euDst: tzOffsetMinutes(new Date(ms), CFG.TZ_LONDON) === 60
+    };
+  }
+
+  /* ---------------- [第1段階] 東京時間・ゴトー日・仲値フロー判定 ---------------- */
+  function computeTokyoFlow(candles5m, now) {
+    /* [修正3/4] ブラウザTZ依存だった getJST を廃し、Intlベースの実JSTに統一 */
+    var jp = jstOf((now || new Date()).getTime());
+    var day = jp.d, dow = jp.dow, h = jp.h, m = jp.min;
+
+    var gotobiDays = [5, 10, 15, 20, 25, 30];
+    var isGotobi = false;
+    if (dow >= 1 && dow <= 5) {
+      if (gotobiDays.indexOf(day) !== -1) {
+        isGotobi = true;
+      } else if (dow === 5) {
+        if (gotobiDays.indexOf(day + 1) !== -1 || gotobiDays.indexOf(day + 2) !== -1) {
+          isGotobi = true;
+        }
+      }
+    }
+
+    var isPreFixing = (h === 9 && m < 55);
+    var isPostFixing = (h === 9 && m >= 55) || (h === 10 && m <= 15);
+    var isTokyoAfternoon = (h >= 10 && h < 15);
+
+    var todayStr = jp.dateStr;
+    var tokyoOpenBar = null;
+    for (var i = candles5m.length - 1; i >= 0; i--) {
+      var c = candles5m[i];
+      if (c.jd === todayStr && c.jh === 9 && c.jm === 0) { tokyoOpenBar = c; break; }
+    }
+    var tokyoOpen = tokyoOpenBar ? tokyoOpenBar.o : null;
+
+    return {
+      isGotobi: isGotobi,
+      isPreFixing: isPreFixing,
+      isPostFixing: isPostFixing,
+      isTokyoAfternoon: isTokyoAfternoon,
+      tokyoOpen: tokyoOpen,
+      statusText: isGotobi ? 'ゴトー日(実需フロー警戒)' : '通常日'
+    };
+  }
+
+  /* ---------------- [第1段階] アジアレンジ高安 & ロンドンJudas Swing判定 ---------------- */
+  function computeLondonFlow(candles5m, now) {
+    var nowMs = (now || new Date()).getTime();
+    /* [修正4] アジアレンジは「今のFX営業日」の東京時間帯で切り出す */
+    var fxToday = fxDayKey(nowMs);
+
+    var asianBars = [];
+    for (var i = 0; i < candles5m.length; i++) {
+      var b = candles5m[i];
+      if (b.fx === fxToday && b.jh >= 9 && b.jh < 15) asianBars.push(b);
+    }
+
+    if (asianBars.length < 12) {
+      return { asianHigh: null, asianLow: null, judasSweep: null, breakout: null, isLondonSession: false };
+    }
+
+    var asianHigh = Math.max.apply(null, asianBars.map(function(c) { return c.h; }));
+    var asianLow = Math.min.apply(null, asianBars.map(function(c) { return c.l; }));
+    state.asianHigh = asianHigh;
+    state.asianLow = asianLow;
+
+    /* [修正3] ロンドン時間帯は現地時刻で判定 (夏冬でJST換算が1時間ずれるため) */
+    var ldnH = londonOf(nowMs).h;
+    var isLondonSession = (ldnH >= 7 && ldnH < 17);
+    var judasSweep = null;
+    var breakout = null;
+
+    /* [修正2] スイープ判定は確定足のみで行う */
+    if (isLondonSession && candles5m.length >= 3) {
+      var current = candles5m[candles5m.length - 1];
+      var prev1 = candles5m[candles5m.length - 2];
+      var prev2 = candles5m[candles5m.length - 3];
+
+      var sweptHigh = (current.h > asianHigh || prev1.h > asianHigh || prev2.h > asianHigh);
+      if (sweptHigh && current.c < asianHigh && (asianHigh - current.c) >= 2 * CFG.PIP) {
+        judasSweep = 'bearish_sweep';
+      }
+
+      var sweptLow = (current.l < asianLow || prev1.l < asianLow || prev2.l < asianLow);
+      if (sweptLow && current.c > asianLow && (current.c - asianLow) >= 2 * CFG.PIP) {
+        judasSweep = 'bullish_sweep';
+      }
+
+      if (!judasSweep) {
+        if (current.c > asianHigh + 3 * CFG.PIP && prev1.c > asianHigh) breakout = 'bullish_break';
+        else if (current.c < asianLow - 3 * CFG.PIP && prev1.c < asianLow) breakout = 'bearish_break';
+      }
+    }
+
+    return {
+      asianHigh: asianHigh,
+      asianLow: asianLow,
+      judasSweep: judasSweep,
+      breakout: breakout,
+      isLondonSession: isLondonSession
+    };
+  }
+
+  /* ---------------- [第2段階] SBI証券 資金管理＆発注ロット計算機 ---------------- */
+  function calculateSbiLotSize(accountBalance, riskPercent, stopLossPips, currentRate) {
+    if (!stopLossPips || stopLossPips <= 0 || !currentRate || currentRate <= 0) return null;
+
+    var maxRiskAmount = accountBalance * (riskPercent / 100);
+    var pipsLossPerCurrency = stopLossPips * CFG.PIP; // 1通貨あたりの損失(円)
+    var targetCurrencies = maxRiskAmount / pipsLossPerCurrency;
+
+    var standardLots = targetCurrencies / 10000; // SBI通常 (1Lot = 1万通貨)
+    var miniLots = targetCurrencies / 1000;       // SBIミニ (1Lot = 1千通貨)
+    var marginRequired = (currentRate * targetCurrencies) / CFG.SBI_LEVERAGE; // 必要証拠金
+    var effectiveLeverage = (currentRate * targetCurrencies) / accountBalance; // 実効レバレッジ
+
+    var leverageStatus = 'safe';
+    if (effectiveLeverage > 20 || marginRequired > accountBalance) leverageStatus = 'danger';
+    else if (effectiveLeverage > 10) leverageStatus = 'caution';
+
+    return {
+      standardLots: Math.floor(standardLots * 10) / 10,
+      miniLots: Math.floor(miniLots),
+      targetCurrencies: Math.round(targetCurrencies),
+      riskAmount: Math.round(maxRiskAmount),
+      marginRequired: Math.round(marginRequired),
+      effectiveLeverage: effectiveLeverage.toFixed(1),
+      leverageStatus: leverageStatus
+    };
+  }
+
+  /* ---------------- 手動更新データの鮮度チェック ---------------- */
+  function computeDataFreshness() {
+    var now = Date.now();
+    var warnings = [];
+
+    var fomcDate = eventTimeMs(CFG.EVENT_DATES.nextFomc, CFG.EVENT_LOCAL_TIME.fomc);
+    var daysToFomc = (fomcDate - now) / (24 * 60 * 60 * 1000);
+    if (daysToFomc < 0) {
+      warnings.push({ level: 'urgent', text: 'FOMC(' + CFG.EVENT_DATES.nextFomcLabel + ')は終了日を過ぎています。政策金利と次回会合日の更新が必要です。' });
+    } else if (daysToFomc <= CFG.STALE_WARNING_DAYS) {
+      warnings.push({ level: 'soon', text: 'FOMC(' + CFG.EVENT_DATES.nextFomcLabel + ')まで残り' + Math.ceil(daysToFomc) + '日。' });
+    }
+
+    var bojDate = eventTimeMs(CFG.EVENT_DATES.nextBoj, CFG.EVENT_LOCAL_TIME.boj);
+    var daysToBoj = (bojDate - now) / (24 * 60 * 60 * 1000);
+    if (daysToBoj < 0) {
+      warnings.push({ level: 'urgent', text: 'BOJ会合(' + CFG.EVENT_DATES.nextBojLabel + ')は終了日を過ぎています。政策金利と次回会合日の更新が必要です。' });
+    } else if (daysToBoj <= CFG.STALE_WARNING_DAYS) {
+      warnings.push({ level: 'soon', text: 'BOJ会合(' + CFG.EVENT_DATES.nextBojLabel + ')まで残り' + Math.ceil(daysToBoj) + '日。' });
+    }
+
+    var cpiTimes = (CFG.CPI_DATES || []).map(function (d) { return eventTimeMs(d, CFG.EVENT_LOCAL_TIME.cpi); });
+    var futureCpiCount = cpiTimes.filter(function (t) { return t >= now; }).length;
+    if (futureCpiCount === 0) {
+      warnings.push({ level: 'urgent', text: '米CPIの日程データが尽きています。新しい日程の追加が必要です。' });
+    } else if (futureCpiCount <= CFG.CPI_LIST_LOW_THRESHOLD) {
+      warnings.push({ level: 'soon', text: '米CPI日程の残りが' + futureCpiCount + '件です。' });
+    }
+
+    state.dataFreshnessWarnings = warnings;
+  }
+
+  /* [修正3] NFPは「米東部8:30の第1金曜」。夏冬でUTC時刻が12:30/13:30に変わる */
+  function firstFridayOfMonth(y, m) {
+    var d = new Date(Date.UTC(y, m - 1, 1));
+    while (d.getUTCDay() !== 5) d.setUTCDate(d.getUTCDate() + 1);
+    return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() };
+  }
+  function nextNfpDateUTC(fromDate) {
+    var def = CFG.EVENT_LOCAL_TIME.nfp;
+    var ny = nyOf(fromDate.getTime());
+    var f = firstFridayOfMonth(ny.y, ny.m);
+    var ms = zonedTimeToMs(f.y, f.m, f.d, def.h, def.m, def.tz);
+    if (ms < fromDate.getTime()) {
+      var nextMonth = ny.m === 12 ? { y: ny.y + 1, m: 1 } : { y: ny.y, m: ny.m + 1 };
+      f = firstFridayOfMonth(nextMonth.y, nextMonth.m);
+      ms = zonedTimeToMs(f.y, f.m, f.d, def.h, def.m, def.tz);
+    }
+    return new Date(ms);
+  }
+
+  function computeEventRisk() {
+    var now = new Date();
+    var nowMs = now.getTime();
+
+    var events = [];
+    events.push({ type: 'fomc', name: 'FOMC', label: CFG.EVENT_DATES.nextFomcLabel, timeMs: eventTimeMs(CFG.EVENT_DATES.nextFomc, CFG.EVENT_LOCAL_TIME.fomc) });
+    events.push({ type: 'boj', name: 'BOJ会合', label: CFG.EVENT_DATES.nextBojLabel, timeMs: eventTimeMs(CFG.EVENT_DATES.nextBoj, CFG.EVENT_LOCAL_TIME.boj) });
+    (CFG.CPI_DATES || []).forEach(function (dateStr) {
+      var t = eventTimeMs(dateStr, CFG.EVENT_LOCAL_TIME.cpi);
+      if (t >= nowMs - 24 * 60 * 60 * 1000) events.push({ type: 'cpi', name: '米CPI', label: dateStr, timeMs: t });
+    });
+    var nfpDate = nextNfpDateUTC(now);
+    events.push({ type: 'nfp', name: '米雇用統計(NFP)', label: nfpDate.toISOString().slice(0, 10), timeMs: nfpDate.getTime() });
+
+    var upcoming = events.filter(function (e) { return e.timeMs >= nowMs; }).sort(function (a, b) { return a.timeMs - b.timeMs; });
+    var nearest = upcoming.length ? upcoming[0] : null;
+    var hoursToNearest = nearest ? (nearest.timeMs - nowMs) / (60 * 60 * 1000) : Infinity;
+    var active = nearest != null && hoursToNearest <= CFG.EVENT_RISK_WINDOW_HOURS;
+
+    state.eventRisk = {
+      active: active,
+      nearestEvent: nearest, hoursToNearest: hoursToNearest,
+      upcomingEvents: upcoming.slice(0, 5)
+    };
+  }
+
+  /* [修正4] 時間足から自前生成したFX日足を使い、ADRの分母と分子の日境界を一致させる。
+     旧実装は API日足(取引所基準) と UTC日付の日中レンジを比較していた。 */
+  function rebuildFxDailySeries() {
+    var src = state.candles1hClosed.length ? state.candles1hClosed : state.candles1h;
+    if (!src.length) return;
+    state.candlesD = aggregateFxDays(src);
+    var completed = state.candlesD.slice(0, -1);
+    var prevDay = completed.length ? completed[completed.length - 1] : null;
+    state.pivot = prevDay ? classicPivots(prevDay) : null;
+    state.prevClose = prevDay ? prevDay.c : null;
+    computeAdr();
+  }
+
+  function computeAdr() {
+    var rows = state.candlesD;
+    if (!rows || rows.length < 2) { state.adrPips = null; return; }
+    /* 最終要素は進行中のFX日なので除外。半端な日(祝日・データ端)も除外する */
+    var completed = rows.slice(0, -1).filter(function (d) { return d.n >= CFG.ADR_MIN_BARS_PER_DAY; });
+    if (completed.length < 5) { state.adrPips = null; return; }
+    completed = completed.slice(-CFG.ADR_DAYS);
+    var sum = completed.reduce(function (a, c) { return a + (c.h - c.l); }, 0);
+    state.adrPips = (sum / completed.length) / CFG.PIP;
+    state.adrSampleDays = completed.length;
+  }
+
+  function computeTodayRange() {
+    var key = fxDayKey(Date.now());
+    state.currentFxDay = key;
+    var todayBars = state.candles5m.filter(function (c) { return (c.fx || fxDayKey(c.t)) === key; });
+    if (!todayBars.length) { state.todayRangePips = null; return; }
+    var hi = Math.max.apply(null, todayBars.map(function (c) { return c.h; }));
+    var lo = Math.min.apply(null, todayBars.map(function (c) { return c.l; }));
+    state.todayRangePips = (hi - lo) / CFG.PIP;
+    state.sessionOpen = todayBars[0].o;
+  }
+
+  function roundNumbersInRange(low, high) {
+    var step = CFG.ROUND_NUMBER_STEP;
+    var out = [];
+    var start = Math.ceil(low / step) * step;
+    for (var v = start; v <= high + 1e-9; v += step) out.push(Math.round(v * 100) / 100);
+    return out;
+  }
+
+  function adjustTargetForStructure(rawTarget, entry, direction, pivot) {
+    var buffer = CFG.TARGET_STRUCTURE_BUFFER_PIPS * CFG.PIP;
+    var walls = [];
+    if (pivot) {
+      if (direction === 'long') { walls.push(pivot.r1, pivot.r2, pivot.r3); }
+      else { walls.push(pivot.s1, pivot.s2, pivot.s3); }
+    }
+    if (direction === 'long') {
+      walls = walls.concat(roundNumbersInRange(entry, rawTarget));
+      var validWalls = walls.filter(function (w) { return w != null && w > entry && w < rawTarget; });
+      if (!validWalls.length) return rawTarget;
+      var nearest = Math.min.apply(null, validWalls);
+      return Math.max(entry + buffer, nearest - buffer);
+    } else {
+      walls = walls.concat(roundNumbersInRange(rawTarget, entry));
+      var validWalls2 = walls.filter(function (w) { return w != null && w < entry && w > rawTarget; });
+      if (!validWalls2.length) return rawTarget;
+      var nearest2 = Math.max.apply(null, validWalls2);
+      return Math.min(entry - buffer, nearest2 + buffer);
+    }
+  }
+
+  function buildStrategy(direction, entry, atr1h, candles5m, pivot) {
+    var swingLow = findSwingLow(candles5m, CFG.STRUCTURE_LOOKBACK_BARS);
+    var swingHigh = findSwingHigh(candles5m, CFG.STRUCTURE_LOOKBACK_BARS);
+    var mult = CFG.ATR_STOP_MULT;
+    var minStopDist = CFG.MIN_STOP_PIPS * CFG.PIP;
+
+    if (direction === 'long') {
+      var stopAtr = entry - atr1h * mult;
+      var stopStructure = swingLow - CFG.PIP * 2;
+      var candidates = [stopAtr, stopStructure].filter(function (v) { return v > 0 && v < entry; });
+      var stop = candidates.length ? Math.max.apply(null, candidates) : stopAtr;
+      if (entry - stop < minStopDist) stop = entry - minStopDist;
+      var risk = entry - stop;
+      if (risk <= 0) return null;
+      var targets = CFG.RR_TARGETS.map(function (r) {
+        var raw = entry + risk * r;
+        return adjustTargetForStructure(raw, entry, 'long', pivot);
+      });
+      return { direction: 'long', entry: entry, stop: stop, targets: targets, risk: risk, rr: CFG.RR_TARGETS, atr: atr1h, swingLow: swingLow, swingHigh: swingHigh, stopFloored: (entry - stop) <= minStopDist + 1e-9 };
+    } else {
+      var stopAtr2 = entry + atr1h * mult;
+      var stopStructure2 = swingHigh + CFG.PIP * 2;
+      var candidates2 = [stopAtr2, stopStructure2].filter(function (v) { return v > entry; });
+      var stop2 = candidates2.length ? Math.min.apply(null, candidates2) : stopAtr2;
+      if (stop2 - entry < minStopDist) stop2 = entry + minStopDist;
+      var risk2 = stop2 - entry;
+      if (risk2 <= 0) return null;
+      var targets2 = CFG.RR_TARGETS.map(function (r) {
+        var raw = entry - risk2 * r;
+        return adjustTargetForStructure(raw, entry, 'short', pivot);
+      });
+      return { direction: 'short', entry: entry, stop: stop2, targets: targets2, risk: risk2, rr: CFG.RR_TARGETS, atr: atr1h, swingLow: swingLow, swingHigh: swingHigh, stopFloored: (stop2 - entry) <= minStopDist + 1e-9 };
+    }
+  }
+
+  function percentileRank(values, current) {
+    var valid = values.filter(function (v) { return v != null && !isNaN(v); });
+    if (!valid.length) return null;
+    var below = valid.filter(function (v) { return v <= current; }).length;
+    return (below / valid.length) * 100;
+  }
+
+  function computeVolatilityRegime() {
+    /* [修正2] レジーム判定も確定足のみ */
+    var c1h = state.candles1hClosed, c5 = state.candles5mClosed;
+    if (c1h.length < 60 || c5.length < 60) return null;
+
+    var atr1hArr = atrSeries(c1h, 14);
+    var atrNow = atr1hArr[atr1hArr.length - 1];
+    var atrHistory = atr1hArr.slice(-CFG.REGIME_LOOKBACK);
+    var atrPctl = atrNow != null ? percentileRank(atrHistory, atrNow) : null;
+
+    var closes5 = c5.map(function (c) { return c.c; });
+    var bb = bollinger(closes5, 20, 2);
+    var widths = [];
+    for (var i = Math.max(0, closes5.length - CFG.REGIME_LOOKBACK); i < closes5.length; i++) {
+      if (bb.upper[i] != null && bb.lower[i] != null && bb.mid[i]) widths.push((bb.upper[i] - bb.lower[i]) / bb.mid[i]);
+    }
+    var bbWidthNow = widths.length ? widths[widths.length - 1] : null;
+    var bbPctl = bbWidthNow != null ? percentileRank(widths, bbWidthNow) : null;
+
+    var adx1h = adxSeries(c1h, 14);
+    var adxNow = adx1h.adx[adx1h.adx.length - 1];
+
+    /* [#5] ADXは絶対値ではなく自己分布内の位置で判定する。
+       固定閾値25/20では、ボラティリティの高い期間に全期間がtrendingへ
+       張り付き、レンジ用の重みが一度も適用されなかった。 */
+    var adxHistory = [];
+    for (var a = Math.max(0, adx1h.adx.length - CFG.REGIME_LOOKBACK); a < adx1h.adx.length; a++) {
+      if (adx1h.adx[a] != null) adxHistory.push(adx1h.adx[a]);
+    }
+    var adxPctl = (adxNow != null && adxHistory.length >= 30) ? percentileRank(adxHistory, adxNow) : null;
+    var usePctl = adxPctl != null;
+
+    var isTrendAdx = usePctl ? (adxPctl >= CFG.REGIME_ADX_TREND_PCTL) : (adxNow != null && adxNow >= CFG.REGIME_TREND_ADX);
+    var isRangeAdx = usePctl ? (adxPctl <= CFG.REGIME_ADX_RANGE_PCTL) : (adxNow != null && adxNow < CFG.REGIME_RANGE_ADX);
+
+    var regime, description;
+    var squeeze = bbPctl != null && bbPctl < CFG.REGIME_BB_SQUEEZE_PCTL;
+    var adxTxt = (adxNow != null ? adxNow.toFixed(0) : '—') +
+      (usePctl ? '/分布内' + adxPctl.toFixed(0) + '%' : '');
+
+    if (isTrendAdx && atrPctl != null && atrPctl >= CFG.REGIME_ATR_EXPAND_PCTL) {
+      regime = 'trending';
+      description = 'トレンド相場(ADX ' + adxTxt + '、ボラティリティ拡大局面) — 順張りが有効';
+    } else if (isRangeAdx) {
+      regime = 'ranging';
+      description = 'レンジ相場(ADX ' + adxTxt + ') — 節目での平均回帰が有効' + (squeeze ? ' / スクイーズ中(ブレイク警戒)' : '');
+    } else {
+      regime = 'transitional';
+      description = '移行期(ADX ' + adxTxt + ') — 確信度を割り引いて判断' + (squeeze ? ' / スクイーズ中' : '');
+    }
+
+    return {
+      regime: regime, description: description,
+      adx: adxNow, adxPercentile: adxPctl, adxMode: usePctl ? 'pctl' : 'fixed',
+      atrPercentile: atrPctl, bbWidthPercentile: bbPctl,
+      squeeze: squeeze
+    };
+  }
+
+  function clamp1(v) { return Math.max(-1, Math.min(1, v)); }
+
+
+
+  function computeAdrGate() {
+    if (state.adrPips == null || state.todayRangePips == null) {
+      return { level: 'unknown', usedPct: null, text: 'ADRデータ取得中' };
+    }
+    var usedPct = (state.todayRangePips / state.adrPips) * 100;
+    if (usedPct >= CFG.ADR_EXHAUSTED_PCT) {
+      return { level: 'exhausted', usedPct: usedPct,
+        text: '本日の値幅はADRの' + usedPct.toFixed(0) + '%を消化済み。順張りエントリーは非推奨' };
+    }
+    if (usedPct >= CFG.ADR_CAUTION_PCT) {
+      return { level: 'caution', usedPct: usedPct,
+        text: 'ADRの' + usedPct.toFixed(0) + '%を消化。利確目標は近めに設定推奨' };
+    }
+    if (usedPct < CFG.ADR_ROOM_PCT) {
+      return { level: 'room', usedPct: usedPct,
+        text: 'ADR消化率' + usedPct.toFixed(0) + '%。まだ値幅に余裕あり' };
+    }
+    return { level: 'normal', usedPct: usedPct, text: 'ADR消化率' + usedPct.toFixed(0) + '%(標準)' };
+  }
+
+  function findKeyLevels(price) {
+    var c5 = state.candles5mClosed;
+    var pivot = state.pivot;
+    var swingHigh = findSwingHigh(c5, CFG.STRUCTURE_LOOKBACK_BARS);
+    var swingLow = findSwingLow(c5, CFG.STRUCTURE_LOOKBACK_BARS);
+
+    var upperCandidates = [], lowerCandidates = [];
+    function addLevel(value, name) {
+      if (value == null || isNaN(value)) return;
+      if (value > price) upperCandidates.push({ v: value, name: name });
+      else if (value < price) lowerCandidates.push({ v: value, name: name });
+    }
+    if (pivot) {
+      addLevel(pivot.r1, 'ピボットR1'); addLevel(pivot.r2, 'ピボットR2');
+      addLevel(pivot.s1, 'ピボットS1'); addLevel(pivot.s2, 'ピボットS2');
+      addLevel(pivot.p, 'ピボットP');
+    }
+    addLevel(swingHigh, '直近高値');
+    addLevel(swingLow, '直近安値');
+    if (state.asianHigh) addLevel(state.asianHigh, '東京高値');
+    if (state.asianLow) addLevel(state.asianLow, '東京安値');
+    roundNumbersInRange(price - 1.0, price + 1.0).forEach(function (rn) {
+      addLevel(rn, '節目' + rn.toFixed(2));
+    });
+
+    upperCandidates.sort(function (a, b) { return a.v - b.v; });
+    lowerCandidates.sort(function (a, b) { return b.v - a.v; });
+
+    return {
+      upper: upperCandidates.length ? upperCandidates[0] : null,
+      lower: lowerCandidates.length ? lowerCandidates[0] : null,
+      swingHigh: swingHigh, swingLow: swingLow
+    };
+  }
+
+  /* ============================================================
+     [#9] USD/JPY 要因分解 — 「ドル高」か「円安」かを切り分ける
+     ------------------------------------------------------------
+     EUR/USD と AUD/USD を取得すると、三角裁定から
+       r(EUR/JPY) = r(EUR/USD) + r(USD/JPY)
+     が成立するため、USD/JPYの変化を次のように厳密に分解できる。
+       usdLeg = 対バスケットのドル高度   = -mean(r(EUR/USD), r(AUD/USD))
+       jpyLeg = 対バスケットの円安度     = r(USD/JPY) - usdLeg
+       → usdLeg + jpyLeg ≡ r(USD/JPY)  (恒等式)
+     この2脚の「向きが揃っているか」が重要で、
+       ・両方同符号 = 全面的な動き → 継続しやすい
+       ・片方が逆   = 相殺しており脆い → 確信度を落とすべき
+     なお usdLeg+jpyLeg は価格変化そのものなので、合計を方向シグナル
+     として足すと価格と二重計上になる。したがって本モジュールは
+     「方向」ではなく「確信度」と「性格づけ」に使う。
+     ============================================================ */
+
+  function fxDayStartMs(ms) {
+    var key = fxDayKey(ms).split('-');
+    /* FX営業日 D は「D-1 の NY 17:00」に始まる */
+    return zonedTimeToMs(+key[0], +key[1], +key[2] - 1, CFG.FX_DAY_ANCHOR_HOUR, 0, CFG.TZ_NY);
+  }
+
+  /* 指定時刻以降の対数リターン (窓の最初の足の始値を基準にする) */
+  function logRetSince(candles, sinceMs) {
+    if (!candles || candles.length < 2) return null;
+    var base = null, i;
+    for (i = 0; i < candles.length; i++) { if (candles[i].t >= sinceMs) { base = candles[i]; break; } }
+    if (!base || !base.o) return null;
+    var last = candles[candles.length - 1];
+    if (last.t <= base.t || !last.c) return null;
+    return Math.log(last.c / base.o);
+  }
+
+  function decomposeWindow(sinceMs) {
+    var uj = state.candles5mClosed;
+    var rUJ = logRetSince(uj, sinceMs);
+    if (rUJ == null) return null;
+
+    var legs = [], names = [];
+    CFG.CROSS_SYMBOLS.forEach(function (sym) {
+      var series = state.crosses[sym];
+      var r = series ? logRetSince(series, sinceMs) : null;
+      if (r != null) { legs.push(r); names.push(sym); }
+    });
+    if (!legs.length) return null;
+
+    var meanCross = legs.reduce(function (a, b) { return a + b; }, 0) / legs.length;
+    var usdLeg = -meanCross;          /* 対バスケットのドル高度 */
+    var jpyLeg = rUJ - usdLeg;        /* 対バスケットの円安度 (恒等式より) */
+
+    var absSum = Math.abs(usdLeg) + Math.abs(jpyLeg);
+    var coherence = absSum > 1e-9 ? Math.min(1, Math.abs(rUJ) / absSum) : null;
+    var leadership = absSum > 1e-9 ? (Math.abs(jpyLeg) - Math.abs(usdLeg)) / absSum : null;
+
+    var px = state.price || (uj.length ? uj[uj.length - 1].c : 150);
+    return {
+      rUJ: rUJ, usdLeg: usdLeg, jpyLeg: jpyLeg,
+      ujPips: (rUJ * px) / CFG.PIP,
+      usdPips: (usdLeg * px) / CFG.PIP,
+      jpyPips: (jpyLeg * px) / CFG.PIP,
+      coherence: coherence, leadership: leadership,
+      basket: names
+    };
+  }
+
+  function classifyDecomposition(d) {
+    if (!d || d.coherence == null) return { key: 'unknown', label: '判定不能', note: 'クロス通貨のデータが不足しています' };
+    if (Math.abs(d.ujPips) < CFG.DECOMP_MIN_MOVE_PIPS) {
+      return { key: 'quiet', label: '値動き僅少', note: '分解できるだけの値幅がありません(' + d.ujPips.toFixed(1) + 'pips)' };
+    }
+    if (d.coherence < CFG.DECOMP_OFFSET_COH) {
+      return {
+        key: 'offset', label: '要因が相殺',
+        note: 'ドル要因と円要因が逆を向いています。クロス由来のノイズが主体で、方向は続きにくい局面です'
+      };
+    }
+    var up = d.rUJ > 0;
+    if (d.leadership >= CFG.DECOMP_LEAD_THRESHOLD) {
+      return {
+        key: up ? 'jpy_weak' : 'jpy_strong',
+        label: up ? '円全面安(円主導)' : '円全面高(円主導)',
+        note: up
+          ? '円がバスケット全体に対して売られています。フロー由来でトレンドが継続しやすく、順張りが機能しやすい局面です'
+          : '円がバスケット全体に対して買われています。リスクオフ的な円買いで、下方向が継続しやすい局面です'
+      };
+    }
+    if (d.leadership <= -CFG.DECOMP_LEAD_THRESHOLD) {
+      return {
+        key: up ? 'usd_strong' : 'usd_weak',
+        label: up ? 'ドル全面高(ドル主導)' : 'ドル全面安(ドル主導)',
+        note: 'ドル要因が主体です。米指標・米金利に強く連動し、反転も早くなりやすいためイベント前後は特に注意が必要です'
+      };
+    }
+    return {
+      key: up ? 'both_up' : 'both_down',
+      label: up ? 'ドル高・円安の両輪' : 'ドル安・円高の両輪',
+      note: '両方の要因が同じ方向に効いています。全面的な動きで、最も素直に伸びやすい形です'
+    };
+  }
+
+  function computeCurrencyDecomposition() {
+    var now = Date.now();
+    var shortD = decomposeWindow(now - CFG.DECOMP_SHORT_MINUTES * 60000);
+    var dayD = decomposeWindow(fxDayStartMs(now));
+    var cls = classifyDecomposition(shortD);
+    var dayCls = classifyDecomposition(dayD);
+
+    /* 確信度への写像: 両脚が揃っているほど信頼できる */
+    var mult = 1;
+    if (shortD && shortD.coherence != null && Math.abs(shortD.ujPips) >= CFG.DECOMP_MIN_MOVE_PIPS) {
+      mult = CFG.DECOMP_MULT_MIN + (CFG.DECOMP_MULT_MAX - CFG.DECOMP_MULT_MIN) * shortD.coherence;
+    }
+
+    state.decomp = {
+      short: shortD, day: dayD, cls: cls, dayCls: dayCls,
+      mult: mult,
+      available: !!(shortD || dayD)
+    };
+    return state.decomp;
+  }
+
+  function computeIndicatorSnapshot() {
+    var c5 = state.candles5mClosed, c1h = state.candles1hClosed;
+    if (c5.length < 60 || c1h.length < 60) { state.ind = null; return null; }
+
+    var closes5 = c5.map(function (c) { return c.c; });
+    var closes1h = c1h.map(function (c) { return c.c; });
+    var i5 = closes5.length - 1, i1 = closes1h.length - 1;
+
+    var ema20_1h = ema(closes1h, 20), ema50_1h = ema(closes1h, 50);
+    var atr1hArr = atrSeries(c1h, 14), atr5Arr = atrSeries(c5, 14);
+    var adx1hRes = adxSeries(c1h, 14), adx5Res = adxSeries(c5, 14);
+    var macdRes = macd(closes5, 12, 26, 9);
+    var rsiArr = calcRsiSeries(closes5, 14);
+    var stoch = stochastic(c5, 14, 3, 3);
+    var bb = bollinger(closes5, 20, 2);
+    var vwapArr = vwapSeries(c5);
+
+    /* [#1] 正規化のための生値の分布系列。単位は価格そのままで良い
+       (パーセンタイルはスケール不変なのでATR除算は不要) */
+    var raw = { trendGap: [], trendDist: [], momLevel: [], momSlope: [], vwapDev: [], pivotDev: [], overheat: [] };
+    var lb1 = Math.max(0, i1 - CFG.NORM_LOOKBACK_1H);
+    for (var q = lb1; q <= i1; q++) {
+      if (ema20_1h[q] != null && ema50_1h[q] != null) {
+        raw.trendGap.push(ema20_1h[q] - ema50_1h[q]);
+        raw.trendDist.push(closes1h[q] - ema50_1h[q]);
+      }
+    }
+    var lb5 = Math.max(0, i5 - CFG.NORM_LOOKBACK_5M);
+    var pivotByDay = {};
+    if (state.candlesD && state.candlesD.length > 1) {
+      for (var q2 = 1; q2 < state.candlesD.length; q2++) {
+        var pv = classicPivots(state.candlesD[q2 - 1]);
+        if (pv) pivotByDay[state.candlesD[q2].key] = pv.p;
+      }
+    }
+    for (var q3 = lb5; q3 <= i5; q3++) {
+      if (macdRes.hist[q3] != null) {
+        raw.momLevel.push(macdRes.hist[q3]);
+        if (macdRes.hist[q3 - 1] != null) raw.momSlope.push(macdRes.hist[q3] - macdRes.hist[q3 - 1]);
+      }
+      if (vwapArr[q3] != null) raw.vwapDev.push(closes5[q3] - vwapArr[q3]);
+      var pp = pivotByDay[c5[q3].fx];
+      if (pp != null) raw.pivotDev.push(closes5[q3] - pp);
+      var oh = [], any = false;
+      if (rsiArr[q3] != null) { oh.push((rsiArr[q3] - 50) / 50); any = true; }
+      if (stoch.k[q3] != null) { oh.push((stoch.k[q3] - 50) / 50); any = true; }
+      if (bb.percentB[q3] != null) { oh.push((bb.percentB[q3] - 0.5) * 2); any = true; }
+      if (any) raw.overheat.push(oh.reduce(function (a, b) { return a + b; }, 0) / oh.length);
+    }
+
+    state.ind = {
+      raw: raw,
+      price: (state.price != null && !isNaN(state.price)) ? state.price : closes5[i5],
+      barClose: closes5[i5],
+      e20: ema20_1h[i1], e50: ema50_1h[i1],
+      atr1h: atr1hArr[i1], atr5: atr5Arr[i5],
+      adx1h: adx1hRes.adx[i1], plusDI1h: adx1hRes.plusDI[i1], minusDI1h: adx1hRes.minusDI[i1],
+      adx5: adx5Res.adx[i5], plusDI5: adx5Res.plusDI[i5], minusDI5: adx5Res.minusDI[i5],
+      macdLine: macdRes.macd[i5], macdSignal: macdRes.signal[i5],
+      macdHist: macdRes.hist[i5], macdHistPrev: macdRes.hist[i5 - 1],
+      rsi: rsiArr[i5], k: stoch.k[i5], d: stoch.d[i5],
+      kPrev: stoch.k[i5 - 1], dPrev: stoch.d[i5 - 1],
+      percentB: bb.percentB[i5],
+      vwap: vwapArr[i5]
+    };
+    return state.ind;
+  }
+
+  function assign(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var src = arguments[i];
+      if (!src) continue;
+      for (var k in src) if (Object.prototype.hasOwnProperty.call(src, k)) target[k] = src[k];
+    }
+    return target;
+  }
+  /* ============================================================
+     値幅(ボラティリティ)予測エンジン
+     ------------------------------------------------------------
+     3ヶ月・実効345サンプルのバックテストで、方向予測の決定係数は
+     R²=0.012 しかなく、重み調整・符号反転・最適線形結合・決済方法の
+     変更のいずれも未学習期間で機能しなかった。
+     一方、予測対象を「次の3時間の値幅」に変えると R²=0.559 となり、
+     「動かない局面」を88%の精度で判別できた。
+     したがって本システムは売買方向を出さず、
+       ① 次の3時間にどれだけ動きそうか
+       ② 今はそもそも取引すべき時間帯か
+       ③ 損切り幅をどこに置くべきか
+     を提示する道具として動作する。方向の判断は利用者が行う。
+     ============================================================ */
+
+  var VOL = {
+    /* 学習済み係数(ブラウザ内でオンライン学習した結果を保持) */
+    coef: null, mu: null, sd: null, fitted: false,
+    trainN: 0, r2: null, lastFit: 0,
+    pred: null, predLo: null, predHi: null, pctl: null, dist: null
+  };
+
+  /* --- 特徴量 --- */
+  function realizedVolPips(candles, endIdx, win) {
+    var a = Math.max(1, endIdx - win + 1), sum = 0, cnt = 0;
+    for (var i = a; i <= endIdx; i++) {
+      var r = Math.log(candles[i].c / candles[i - 1].c);
+      if (isFinite(r)) { sum += r * r; cnt++; }
+    }
+    if (!cnt) return null;
+    return Math.sqrt(sum) * candles[endIdx].c / CFG.PIP;
+  }
+
+  function rangePips(candles, endIdx, win) {
+    var a = Math.max(0, endIdx - win + 1), hi = -Infinity, lo = Infinity;
+    for (var i = a; i <= endIdx; i++) { if (candles[i].h > hi) hi = candles[i].h; if (candles[i].l < lo) lo = candles[i].l; }
+    if (!isFinite(hi) || !isFinite(lo)) return null;
+    return (hi - lo) / CFG.PIP;
+  }
+
+  function safeLog(v) { return Math.log(Math.max(v == null || isNaN(v) ? 1e-6 : v, 1e-6)); }
+
+  /* バックテストで検証した特徴量構成:
+     複数期間の実現ボラ + 高安幅 + 時間帯(JSTの周期成分) → 検証R² 0.559 */
+  function volFeatures(candles, i) {
+    if (i < CFG.VOL_MIN_LOOKBACK) return null;
+    var jh = candles[i].jh != null ? candles[i].jh : jstOf(candles[i].t).h;
+    var f = [
+      safeLog(realizedVolPips(candles, i, 36)),
+      safeLog(realizedVolPips(candles, i, 72)),
+      safeLog(realizedVolPips(candles, i, 144)),
+      safeLog(realizedVolPips(candles, i, 288)),
+      safeLog(rangePips(candles, i, 36)),
+      safeLog(rangePips(candles, i, 144)),
+      Math.sin(2 * Math.PI * jh / 24), Math.cos(2 * Math.PI * jh / 24),
+      Math.sin(4 * Math.PI * jh / 24), Math.cos(4 * Math.PI * jh / 24)
+    ];
+    for (var k = 0; k < f.length; k++) if (!isFinite(f[k])) return null;
+    return f;
+  }
+
+  function futureRangePips(candles, i, horizon) {
+    if (i + horizon >= candles.length) return null;
+    var hi = -Infinity, lo = Infinity;
+    for (var k = i + 1; k <= i + horizon; k++) {
+      if (candles[k].h > hi) hi = candles[k].h;
+      if (candles[k].l < lo) lo = candles[k].l;
+    }
+    if (!isFinite(hi) || hi <= lo) return null;
+    return (hi - lo) / CFG.PIP;
+  }
+
+  /* --- リッジ回帰(正規方程式をガウス消去で解く) --- */
+  function solveLinear(A, b) {
+    var n = b.length, i, j, k;
+    var M = [];
+    for (i = 0; i < n; i++) M.push(A[i].slice().concat([b[i]]));
+    for (i = 0; i < n; i++) {
+      var piv = i;
+      for (k = i + 1; k < n; k++) if (Math.abs(M[k][i]) > Math.abs(M[piv][i])) piv = k;
+      if (Math.abs(M[piv][i]) < 1e-12) return null;
+      var tmp = M[i]; M[i] = M[piv]; M[piv] = tmp;
+      for (k = i + 1; k < n; k++) {
+        var f = M[k][i] / M[i][i];
+        for (j = i; j <= n; j++) M[k][j] -= f * M[i][j];
+      }
+    }
+    var x = new Array(n);
+    for (i = n - 1; i >= 0; i--) {
+      var s = M[i][n];
+      for (j = i + 1; j < n; j++) s -= M[i][j] * x[j];
+      x[i] = s / M[i][i];
+    }
+    return x;
+  }
+
+  function fitVolModel(candles) {
+    if (!candles || candles.length < CFG.VOL_MIN_LOOKBACK + CFG.VOL_HORIZON_BARS + 80) return false;
+    var X = [], y = [];
+    for (var i = CFG.VOL_MIN_LOOKBACK; i + CFG.VOL_HORIZON_BARS < candles.length; i += CFG.VOL_FIT_STRIDE) {
+      var f = volFeatures(candles, i);
+      var fr = futureRangePips(candles, i, CFG.VOL_HORIZON_BARS);
+      if (!f || fr == null) continue;
+      X.push(f); y.push(Math.log(fr));
+    }
+    if (X.length < CFG.VOL_MIN_SAMPLES) { VOL.fitted = false; VOL.trainN = X.length; return false; }
+
+    var p = X[0].length, n = X.length, i2, j2, k2;
+    var mu = new Array(p).fill(0), sd = new Array(p).fill(0);
+    for (i2 = 0; i2 < n; i2++) for (j2 = 0; j2 < p; j2++) mu[j2] += X[i2][j2];
+    for (j2 = 0; j2 < p; j2++) mu[j2] /= n;
+    for (i2 = 0; i2 < n; i2++) for (j2 = 0; j2 < p; j2++) sd[j2] += Math.pow(X[i2][j2] - mu[j2], 2);
+    for (j2 = 0; j2 < p; j2++) sd[j2] = Math.sqrt(sd[j2] / n) || 1e-9;
+
+    /* 設計行列 Z = [1, 標準化した特徴量] */
+    var d = p + 1;
+    var A = [], b = new Array(d).fill(0);
+    for (i2 = 0; i2 < d; i2++) A.push(new Array(d).fill(0));
+    for (i2 = 0; i2 < n; i2++) {
+      var z = [1];
+      for (j2 = 0; j2 < p; j2++) z.push((X[i2][j2] - mu[j2]) / sd[j2]);
+      for (j2 = 0; j2 < d; j2++) {
+        b[j2] += z[j2] * y[i2];
+        for (k2 = 0; k2 < d; k2++) A[j2][k2] += z[j2] * z[k2];
+      }
+    }
+    for (j2 = 1; j2 < d; j2++) A[j2][j2] += CFG.VOL_RIDGE_LAMBDA;   /* 切片は正則化しない */
+
+    var w = solveLinear(A, b);
+    if (!w) { VOL.fitted = false; return false; }
+
+    /* 学習内の決定係数 */
+    var ybar = y.reduce(function (a2, c) { return a2 + c; }, 0) / n;
+    var ssRes = 0, ssTot = 0;
+    for (i2 = 0; i2 < n; i2++) {
+      var z2 = [1];
+      for (j2 = 0; j2 < p; j2++) z2.push((X[i2][j2] - mu[j2]) / sd[j2]);
+      var yh = 0;
+      for (j2 = 0; j2 < d; j2++) yh += w[j2] * z2[j2];
+      ssRes += Math.pow(y[i2] - yh, 2);
+      ssTot += Math.pow(y[i2] - ybar, 2);
+    }
+    VOL.coef = w; VOL.mu = mu; VOL.sd = sd; VOL.fitted = true;
+    VOL.trainN = n; VOL.r2 = ssTot > 0 ? 1 - ssRes / ssTot : null;
+    VOL.lastFit = Date.now();
+
+    /* 予測分布(実測値幅の分位点)— 「動く/動かない」の判定に使う */
+    var ys = y.slice().sort(function (a2, c) { return a2 - c; });
+    VOL.dist = {
+      q25: Math.exp(ys[Math.floor(ys.length * 0.25)]),
+      q50: Math.exp(ys[Math.floor(ys.length * 0.50)]),
+      q75: Math.exp(ys[Math.floor(ys.length * 0.75)]),
+      all: ys
+    };
+    return true;
+  }
+
+  function predictVolatility(candles) {
+    if (!VOL.fitted || !candles || !candles.length) { VOL.pred = null; return null; }
+    var i = candles.length - 1;
+    var f = volFeatures(candles, i);
+    if (!f) { VOL.pred = null; return null; }
+    var yh = VOL.coef[0];
+    for (var j = 0; j < f.length; j++) yh += VOL.coef[j + 1] * ((f[j] - VOL.mu[j]) / VOL.sd[j]);
+    var pred = Math.exp(yh);
+    VOL.pred = pred;
+    /* 予測が学習分布のどこに位置するか(0-100) */
+    if (VOL.dist && VOL.dist.all.length) {
+      var arr = VOL.dist.all, lo = 0, hi = arr.length;
+      while (lo < hi) { var mid = (lo + hi) >> 1; if (arr[mid] <= yh) lo = mid + 1; else hi = mid; }
+      VOL.pctl = (lo / arr.length) * 100;
+    } else VOL.pctl = null;
+    return pred;
+  }
+
+  /* ============================================================
+     市場コンディション — 方向は出さず、状況と値幅だけを提示する
+     ============================================================ */
+  function computeMarketCondition() {
+    var sess = state.session;
+    computeIndicatorSnapshot();
+    computeCurrencyDecomposition();
+
+    if (sess && sess.closed) {
+      state.condition = { status: 'closed', headline: '市場クローズ中', notes: ['週末につき主要市場が閉じています'] };
+      return;
+    }
+    var ind = state.ind;
+    if (!ind) { state.condition = null; return; }
+
+    var series = state.candles5mLong && state.candles5mLong.length > state.candles5mClosed.length
+      ? state.candles5mLong : state.candles5mClosed;
+    predictVolatility(series);
+
+    var regimeInfo = computeVolatilityRegime();
+    var pred = VOL.pred;
+
+    /* --- トレンドの向き(方向シグナルではなく現状の記述) --- */
+    var trendDir = null, trendTxt = '—';
+    if (ind.e20 != null && ind.e50 != null) {
+      var gap = (ind.e20 - ind.e50) / CFG.PIP;
+      if (Math.abs(gap) >= CFG.TREND_DIR_MIN_PIPS) {
+        trendDir = gap > 0 ? 'up' : 'down';
+        trendTxt = (gap > 0 ? '上昇' : '下降') + 'トレンド寄り (1H EMA20-50 ' + fmtSigned(gap, 1) + 'p)';
+      } else {
+        trendTxt = '方向感に乏しい (1H EMA20-50 ' + fmtSigned(gap, 1) + 'p)';
+      }
+    }
+
+    /* --- 相場つき --- */
+    var regimeLabel = '—', regimeKey = null;
+    if (regimeInfo) {
+      regimeKey = regimeInfo.regime;
+      if (regimeKey === 'trending') {
+        regimeLabel = trendDir
+          ? (trendDir === 'up' ? '上昇トレンド' : '下降トレンド')
+          : 'トレンド寄り';
+      } else if (regimeKey === 'ranging') regimeLabel = 'レンジ寄り';
+      else regimeLabel = '移行期';
+    }
+
+    /* --- トレード適性: 「動かない」を避けるための判定 --- */
+    var tradability = 'unknown', tradeTxt = '判定中', tradeNote = '';
+    if (pred != null && VOL.dist) {
+      if (pred <= VOL.dist.q25) {
+        tradability = 'poor'; tradeTxt = '見送り推奨';
+        tradeNote = '予想変動幅が下位25%です。検証では、この水準の局面の実測値幅は中央6.3pipsで、スプレッドを引くと利益を出しにくい領域でした。';
+      } else if (pred <= VOL.dist.q50) {
+        tradability = 'weak'; tradeTxt = 'やや小さい';
+        tradeNote = '平均を下回る値幅です。利確目標を近めに置くか、見送りも選択肢です。';
+      } else if (pred <= VOL.dist.q75) {
+        tradability = 'ok'; tradeTxt = '標準';
+        tradeNote = '平常の値幅が見込まれます。';
+      } else {
+        tradability = 'good'; tradeTxt = '活発';
+        tradeNote = '大きめの値幅が見込まれます。ストップも相応に広げる必要があります。';
+      }
+    }
+
+    /* --- 損切り幅の目安: 予測値幅に対する比率で提示 --- */
+    var stopPips = null, stopRange = null, plan = null;
+    if (pred != null) {
+      stopPips = Math.max(CFG.MIN_STOP_PIPS, pred * CFG.STOP_FRACTION_OF_RANGE);
+      stopRange = [
+        Math.max(CFG.MIN_STOP_PIPS, pred * CFG.STOP_FRACTION_MIN),
+        Math.max(CFG.MIN_STOP_PIPS, pred * CFG.STOP_FRACTION_MAX)
+      ];
+      /* 方向は予測しないので、買う場合と売る場合の両方の水準を出す。
+         利用者が方向を決め、決めた側の行を使う。 */
+      var px0 = ind.price;
+      var tp1 = pred * CFG.TP1_FRACTION, tp2 = pred * CFG.TP2_FRACTION;
+      plan = {
+        entry: px0, stopPips: stopPips, tp1Pips: tp1, tp2Pips: tp2,
+        rr1: tp1 / stopPips, rr2: tp2 / stopPips,
+        long:  { stop: px0 - stopPips * CFG.PIP, tp1: px0 + tp1 * CFG.PIP, tp2: px0 + tp2 * CFG.PIP },
+        short: { stop: px0 + stopPips * CFG.PIP, tp1: px0 - tp1 * CFG.PIP, tp2: px0 - tp2 * CFG.PIP }
+      };
+    }
+
+    var notes = [];
+    if (pred != null) {
+      notes.push('次の' + (CFG.VOL_HORIZON_BARS * 5 / 60).toFixed(0) + '時間の想定変動幅は約' + pred.toFixed(0) +
+        'pips(学習分布の' + (VOL.pctl != null ? VOL.pctl.toFixed(0) + '%点' : '—') + ')。');
+    }
+    notes.push('相場つき: ' + regimeLabel + (regimeInfo ? '(ADX ' + (regimeInfo.adx != null ? regimeInfo.adx.toFixed(0) : '—') +
+      (regimeInfo.adxPercentile != null ? ' / 分布内' + regimeInfo.adxPercentile.toFixed(0) + '%' : '') + ')' : ''));
+    notes.push('上位足の向き: ' + trendTxt);
+    if (state.decomp && state.decomp.cls && state.decomp.short) {
+      notes.push('直近の値動きの内訳: ' + state.decomp.cls.label + ' (ドル要因 ' +
+        fmtSigned(state.decomp.short.usdPips, 1) + 'p / 円要因 ' + fmtSigned(state.decomp.short.jpyPips, 1) + 'p)');
+    }
+
+    state.condition = {
+      status: 'open',
+      pred: pred, pctl: VOL.pctl, dist: VOL.dist,
+      tradability: tradability, tradeTxt: tradeTxt, tradeNote: tradeNote,
+      regime: regimeInfo, regimeLabel: regimeLabel, regimeKey: regimeKey,
+      trendDir: trendDir, trendTxt: trendTxt,
+      stopPips: stopPips, stopRange: stopRange, plan: plan,
+      eventStage: state.eventStage || null,
+      notes: notes,
+      modelR2: VOL.r2, modelN: VOL.trainN, modelFitted: VOL.fitted
+    };
+  }
+
+  function fmtSigned(v, d) {
+    if (v == null || isNaN(v)) return '—';
+    return (v >= 0 ? '+' : '') + v.toFixed(d != null ? d : 1);
+  }
+
+  /* ---------------- Rendering ---------------- */
+  function renderTickerKpis() {
+    setText('v-price', fmtJpy(state.price, 3));
+    var chg = state.sessionOpen ? state.price - state.sessionOpen : null;
+    var chgPct = state.sessionOpen ? (chg / state.sessionOpen) * 100 : null;
+    setText('v-price-sub', '本日 ' + fmtPips(chg) + ' (' + fmtPct(chgPct) + ')');
+    var sub = document.getElementById('v-price-sub');
+    if (sub) sub.className = 'kpi-sub ' + pctClass(chg);
+
+    var updEl = document.getElementById('last-updated');
+    if (updEl) updEl.textContent = '更新: ' + new Date().toLocaleTimeString('ja-JP');
+    var dot = document.getElementById('live-dot');
+    if (dot) dot.classList.remove('stale');
+  }
+
+  function renderHtfKpi() {
+    var ind = state.ind;
+    if (!ind || ind.e20 == null || ind.e50 == null) return;
+    var gap = (ind.e20 - ind.e50) / CFG.PIP;
+    var dir = Math.abs(gap) < CFG.TREND_DIR_MIN_PIPS ? null : (gap > 0 ? 'up' : 'down');
+    setText('v-htf', dir === 'up' ? '上昇トレンド(1H)' : (dir === 'down' ? '下降トレンド(1H)' : '方向感に乏しい(1H)'));
+    var val = document.getElementById('v-htf');
+    if (val) val.className = 'kpi-value ' + (dir === 'up' ? 'up' : (dir === 'down' ? 'down' : 'flat'));
+    setText('v-htf-sub', 'EMA20 ' + fmtJpy(ind.e20, 3) + ' / EMA50 ' + fmtJpy(ind.e50, 3) + ' (差 ' + fmtSigned(gap, 1) + 'p)');
+  }
+
+  function renderPivotKpi() {
+    var p = state.pivot;
+    if (!p) return;
+    setText('v-pivot', fmtJpy(p.p, 3));
+    setText('v-pivot-sub', 'R1 ' + fmtJpy(p.r1, 3) + ' / S1 ' + fmtJpy(p.s1, 3) + ' · 前FX営業日基準');
+  }
+
+  function renderVwapKpi() {
+    if (!state.ind || state.ind.vwap == null || state.price == null) return;
+    var diff = state.price - state.ind.vwap;
+    setText('v-vwap', fmtJpy(state.ind.vwap, 3));
+    setText('v-vwap-sub', '価格との乖離 ' + fmtPips(diff));
+    var val = document.getElementById('v-vwap');
+    if (val) val.className = 'kpi-value tabular ' + pctClass(diff);
+  }
+
+  function renderRiskKpis() {
+    var spxCard = document.getElementById('kpi-spx');
+    if (spxCard) {
+      if (!state.spxAvailable) {
+        setText('v-spx', '取得不可');
+        setText('v-spx-sub', '理由: ' + (state.spxError || '待機中'));
+      } else if (state.spx != null) {
+        setText('v-spx', state.spx.toLocaleString('en-US', { maximumFractionDigits: 2 }));
+        var riskLabel = state.spxChangePct != null && state.spxChangePct <= CFG.RISK_OFF_DROP_PCT ? 'リスクオフ'
+          : (state.spxChangePct != null && state.spxChangePct >= CFG.RISK_ON_RISE_PCT ? 'リスクオン' : '中立');
+        setText('v-spx-sub', riskLabel + (state.spxChangePct != null ? ' · 前日比' + fmtPct(state.spxChangePct, 2) : ''));
+        var spxVal = document.getElementById('v-spx');
+        if (spxVal) spxVal.className = 'kpi-value tabular ' + pctClass(state.spxChangePct);
+      }
+    }
+
+    var nkyCard = document.getElementById('kpi-nikkei');
+    if (nkyCard) {
+      if (!state.nikkeiAvailable) {
+        setText('v-nikkei', '取得不可');
+        setText('v-nikkei-sub', '理由: ' + (state.nikkeiError || '待機中'));
+      } else if (state.nikkei != null) {
+        setText('v-nikkei', state.nikkei.toLocaleString('en-US', { maximumFractionDigits: 2 }));
+        setText('v-nikkei-sub', (state.nikkeiChangePct != null ? '前日比' + fmtPct(state.nikkeiChangePct, 2) : ''));
+        var nkyVal = document.getElementById('v-nikkei');
+        if (nkyVal) nkyVal.className = 'kpi-value tabular ' + pctClass(state.nikkeiChangePct);
+      }
+    }
+  }
+
+  /* イベントの接近度を段階化する。旧実装は36時間ずっと同じ警告だった。 */
+  function computeEventStage() {
+    var er = state.eventRisk;
+    state.eventStage = null;
+    if (!er || !er.nearestEvent) return null;
+    var h = er.hoursToNearest;
+    for (var i = 0; i < CFG.EVENT_STAGES.length; i++) {
+      var st = CFG.EVENT_STAGES[i];
+      if (h <= st.maxH && h >= st.minH) {
+        state.eventStage = {
+          key: st.key, blocking: (st.key === 'halt'),
+          headline: er.nearestEvent.name + ' ' + st.label,
+          text: st.text,
+          hours: h, event: er.nearestEvent
+        };
+        return state.eventStage;
+      }
+    }
+    return null;
+  }
+
+  function renderEventRiskBanner() {
+    var banner = document.getElementById('event-risk-banner');
+    if (!banner) return;
+    var er = state.eventRisk;
+    if (!er || !er.active || !er.nearestEvent) { banner.hidden = true; return; }
+    banner.hidden = false;
+    var ne = er.nearestEvent;
+    var eventLabelMap = { fomc: 'FOMC結果発表', boj: 'BOJ金融政策決定会合', cpi: '米CPI発表', nfp: '米雇用統計発表' };
+    banner.textContent = '⚠ ' + (eventLabelMap[ne.type] || ne.name) + '(' + ne.label + ')まで残り約' + Math.max(0, er.hoursToNearest).toFixed(0) + '時間 — 新規ポジション警戒';
+  }
+
+  function renderLotCalculator(entry, stop) {
+    if (!entry || !stop) return;
+    var stopPips = Math.abs(entry - stop) / CFG.PIP;
+    var res = calculateSbiLotSize(state.accountBalance, state.riskPercent, stopPips, entry);
+    if (!res) return;
+
+    setText('calc-loss-amount', res.riskAmount.toLocaleString('ja-JP') + ' 円 (' + state.riskPercent.toFixed(1) + '%)');
+    setText('calc-standard-lots', res.standardLots.toFixed(1) + ' Lot (' + (res.standardLots * 10000).toLocaleString('ja-JP') + '通貨)');
+    setText('calc-mini-lots', res.miniLots.toLocaleString('ja-JP') + ' Lot (' + (res.miniLots * 1000).toLocaleString('ja-JP') + '通貨)');
+    setText('calc-margin-req', res.marginRequired.toLocaleString('ja-JP') + ' 円');
+
+    var levBox = document.getElementById('stat-leverage-box');
+    var levEl = document.getElementById('calc-leverage');
+    if (levEl && levBox) {
+      var badgeText = res.leverageStatus === 'safe' ? '安全圏' : (res.leverageStatus === 'caution' ? '注意' : '過大警告');
+      levEl.innerHTML = res.effectiveLeverage + ' 倍 <span class="leverage-tag ' + res.leverageStatus + '">' + badgeText + '</span>';
+      levBox.className = 'risk-calc-stat ' + (res.leverageStatus === 'danger' ? 'danger' : (res.leverageStatus === 'caution' ? 'warn' : ''));
+    }
+  }
+
+  /* ---------------- 市場コンディション(メイン表示) ---------------- */
+  var TRADE_CLS = { poor: 'down', weak: 'flat', ok: 'up', good: 'up', unknown: 'flat' };
+
+  function renderCondition() {
+    var c = state.condition;
+    var head = document.getElementById('cond-headline');
+    var sub = document.getElementById('cond-sub');
+    var grid = document.getElementById('cond-grid');
+    var notes = document.getElementById('cond-notes');
+    if (!head) return;
+
+    if (!c) { head.textContent = 'データ取得中…'; if (grid) grid.innerHTML = ''; return; }
+    if (c.status === 'closed') {
+      head.textContent = '市場クローズ中';
+      head.className = 'cond-headline flat';
+      if (sub) sub.textContent = '週末につき主要市場が閉じています';
+      if (grid) grid.innerHTML = '';
+      if (notes) notes.innerHTML = '';
+      return;
+    }
+
+    var predTxt = c.pred != null ? c.pred.toFixed(0) + ' pips' : '—';
+    head.textContent = '想定変動幅 ' + predTxt + '（次の' + (CFG.VOL_HORIZON_BARS * 5 / 60).toFixed(0) + '時間）';
+    head.className = 'cond-headline ' + (TRADE_CLS[c.tradability] || 'flat');
+
+    if (sub) {
+      var ev = c.eventStage;
+      sub.textContent = (ev && ev.blocking ? '⚠ ' + ev.headline + ' — ' : '') +
+        'トレード適性: ' + c.tradeTxt + ' · ' + c.regimeLabel;
+    }
+
+    if (grid) {
+      var stopTxt = c.stopRange
+        ? c.stopRange[0].toFixed(0) + '〜' + c.stopRange[1].toFixed(0) + ' pips'
+        : '—';
+      var cards = [
+        ['想定変動幅', predTxt, c.pctl != null ? '学習分布の' + c.pctl.toFixed(0) + '%点' : '—', TRADE_CLS[c.tradability]],
+        ['トレード適性', c.tradeTxt, c.pred != null && c.dist ? '下位25%は約' + c.dist.q25.toFixed(0) + 'pips以下' : '—', TRADE_CLS[c.tradability]],
+        ['相場つき', c.regimeLabel, c.trendTxt, c.trendDir === 'up' ? 'up' : (c.trendDir === 'down' ? 'down' : 'flat')],
+        ['損切り幅の目安', stopTxt, '想定変動幅の' + (CFG.STOP_FRACTION_MIN * 100).toFixed(0) + '〜' + (CFG.STOP_FRACTION_MAX * 100).toFixed(0) + '%', 'flat']
+      ];
+      grid.innerHTML = cards.map(function (x) {
+        return '<div class="kpi-card"><div class="kpi-label">' + x[0] + '</div>' +
+          '<div class="kpi-value tabular ' + (x[3] || 'flat') + '">' + x[1] + '</div>' +
+          '<div class="kpi-sub flat">' + x[2] + '</div></div>';
+      }).join('');
+    }
+
+    if (notes) {
+      var items = c.notes.slice();
+      if (c.tradeNote) items.unshift(c.tradeNote);
+      notes.innerHTML = items.map(function (t) { return '<li>' + t + '</li>'; }).join('');
+    }
+
+    var model = document.getElementById('cond-model');
+    if (model) {
+      model.textContent = c.modelFitted
+        ? '値幅モデル: 学習' + c.modelN + 'サンプル · 学習内R² ' + (c.modelR2 != null ? c.modelR2.toFixed(3) : '—') +
+          ' (検証R²はバックテストで0.559)'
+        : '値幅モデル: 学習データ蓄積中（' + VOL.trainN + '/' + CFG.VOL_MIN_SAMPLES + 'サンプル）';
+    }
+  }
+
+  /* ---------------- 損切り幅とロット ---------------- */
+  function renderStopGuide() {
+    var c = state.condition;
+    var wrap = document.getElementById('stop-guide');
+    if (!wrap) return;
+    if (!c || c.status !== 'open' || !c.plan) {
+      wrap.innerHTML = '<div class="empty-box">値幅の予測値を算出中です</div>';
+      renderLotCalculator(null, null);
+      return;
+    }
+    var p = c.plan;
+    function row(side, label, cls) {
+      var d = p[side];
+      return '<tr class="plan-' + cls + '">' +
+        '<th scope="row"><span class="plan-tag ' + cls + '">' + label + '</span></th>' +
+        '<td class="tabular">' + fmtJpy(d.stop, 3) + '</td>' +
+        '<td class="tabular">' + fmtJpy(d.tp1, 3) + '</td>' +
+        '<td class="tabular">' + fmtJpy(d.tp2, 3) + '</td></tr>';
+    }
+    wrap.innerHTML =
+      '<div class="plan-head">現在値 <span class="tabular">' + fmtJpy(p.entry, 3) + '</span>' +
+      ' · 想定変動幅 <span class="tabular">' + c.pred.toFixed(0) + 'pips</span> を基準に算出</div>' +
+      '<div class="table-wrap"><table class="plan-table">' +
+      '<thead><tr><th></th><th>損切り</th><th>利確1</th><th>利確2</th></tr></thead>' +
+      '<tbody>' + row('long', '買う場合', 'long') + row('short', '売る場合', 'short') + '</tbody>' +
+      '</table></div>' +
+      '<div class="plan-meta">' +
+      '<span>損切り ' + p.stopPips.toFixed(1) + 'p<small>(3時間以内の到達率 ' + CFG.STOP_REACH_PCT + '%)</small></span>' +
+      '<span>利確1 ' + p.tp1Pips.toFixed(1) + 'p<small>(' + CFG.TP1_REACH_PCT + '%)</small></span>' +
+      '<span>利確2 ' + p.tp2Pips.toFixed(1) + 'p<small>(' + CFG.TP2_REACH_PCT + '%)</small></span>' +
+      '<span>リスクリワード ' + p.rr1.toFixed(2) + ' / ' + p.rr2.toFixed(2) + '</span>' +
+      '</div>' +
+      '<p class="strategy-note">買うか売るかは提示しません。バックテストで方向の的中率は50.0%(95%CI ±5.3)にとどまり、' +
+      'どの相場つきでもコイン投げと区別がつかなかったためです。方向はご自身で決め、決めた側の行をお使いください。' +
+      '水準は検証済みの値幅予測から算出しており、括弧内は3ヶ月976サンプルでの実測到達率です' +
+      '(どちらが先に到達するかは方向判断次第なので、勝率ではありません)。</p>';
+    renderLotCalculator(p.entry, p.long.stop);
+  }
+
+  /* ---------------- 時間帯適性 (静的テーブル・API不要) ---------------- */
+  function computeHourProfile() {
+    var h = jstOf(Date.now()).h;
+    var row = CFG.HOUR_PROFILE[h];
+    state.hourProfile = row ? { hour: h, tier: row.tier, eff: row.eff, rng: row.rng, mr: row.mr } : null;
+  }
+
+  function renderHourProfile() {
+    var badge = document.getElementById('hourprof-badge');
+    if (!badge) return;
+    var hp = state.hourProfile;
+    if (!hp) { badge.textContent = '算出中…'; return; }
+
+    var tierLabel = CFG.HOUR_TIER_LABEL[hp.tier] || '—';
+    badge.textContent = hp.hour + '時台 — ' + tierLabel;
+    badge.className = 'hourprof-badge tier-' + hp.tier;
+
+    var sub = document.getElementById('hourprof-sub');
+    if (sub) {
+      sub.textContent = '効率指数 ' + hp.eff.toFixed(3) + '(ランダムウォークは0.500) · 平均値幅 ' + hp.rng.toFixed(1) + 'pips/時';
+    }
+
+    var mrWrap = document.getElementById('hourprof-mr-wrap');
+    if (mrWrap) {
+      mrWrap.innerHTML = hp.mr
+        ? '<div class="hourprof-mr">⚠ この時間帯は値動きが往復して終わりやすい傾向が両局面で確認されています。ブレイク追随よりも戻りを待つ判断が支持されます。</div>'
+        : '';
+    }
+
+    var strip = document.getElementById('hourprof-strip');
+    if (strip && !strip.childElementCount) {
+      var maxRng = 0;
+      for (var k in CFG.HOUR_PROFILE) if (CFG.HOUR_PROFILE[k].rng > maxRng) maxRng = CFG.HOUR_PROFILE[k].rng;
+      var html = '';
+      for (var hr = 0; hr < 24; hr++) {
+        var r = CFG.HOUR_PROFILE[hr];
+        var pct = 28 + 72 * (r.rng / maxRng);
+        html += '<i class="tier-' + r.tier + (hr === hp.hour ? ' now' : '') + '" style="height:' + pct.toFixed(0) + '%" ' +
+          'title="' + hr + '時 ' + (CFG.HOUR_TIER_LABEL[r.tier] || '') + ' / 平均' + r.rng.toFixed(1) + 'pips"></i>';
+      }
+      strip.innerHTML = html;
+    } else if (strip) {
+      /* 時刻が変わったら現在マーカーだけ付け替える */
+      var kids = strip.children;
+      for (var ci = 0; ci < kids.length; ci++) kids[ci].classList.toggle('now', ci === hp.hour);
+    }
+  }
+
+  function renderDecomposition() {
+    var wrap = document.getElementById('decomp-body');
+    var note = document.getElementById('decomp-note');
+    if (!wrap) return;
+    var d = state.decomp;
+
+    var missing = CFG.CROSS_SYMBOLS.filter(function (sym) { return !state.crosses[sym]; });
+    if (note) {
+      note.textContent = missing.length
+        ? 'クロス通貨を取得中: ' + missing.join(' / ') + (state.crossErrors[missing[0]] ? ' — ' + state.crossErrors[missing[0]] : '')
+        : 'バスケット: ' + CFG.CROSS_SYMBOLS.join(' / ') + ' · 直近' + (CFG.DECOMP_SHORT_MINUTES / 60).toFixed(0) + '時間と当日';
+    }
+    if (!d || !d.available) {
+      wrap.innerHTML = '<div class="empty-box">クロス通貨のデータ待ちです</div>';
+      return;
+    }
+
+    function bar(dd, title) {
+      if (!dd) return '<div class="decomp-block"><div class="decomp-title">' + title + '</div>' +
+        '<div class="empty-box">データ不足</div></div>';
+      var cls = classifyDecomposition(dd);
+      var au = Math.abs(dd.usdPips), aj = Math.abs(dd.jpyPips);
+      var tot = au + aj || 1;
+      var usdW = (au / tot) * 100, jpyW = (aj / tot) * 100;
+      var usdSign = dd.usdPips >= 0 ? 'pos' : 'neg';
+      var jpySign = dd.jpyPips >= 0 ? 'pos' : 'neg';
+      return '<div class="decomp-block">' +
+        '<div class="decomp-title">' + title +
+        '<span class="decomp-total tabular ' + (dd.ujPips >= 0 ? 'up' : 'down') + '">' + fmtSigned(dd.ujPips, 1) + ' pips</span></div>' +
+        '<div class="decomp-bar">' +
+        '<div class="decomp-seg usd ' + usdSign + '" style="width:' + usdW.toFixed(1) + '%">ドル ' + fmtSigned(dd.usdPips, 1) + '</div>' +
+        '<div class="decomp-seg jpy ' + jpySign + '" style="width:' + jpyW.toFixed(1) + '%">円 ' + fmtSigned(dd.jpyPips, 1) + '</div>' +
+        '</div>' +
+        '<div class="decomp-meta tabular">一致度 ' + (dd.coherence != null ? (dd.coherence * 100).toFixed(0) + '%' : '—') +
+        ' · 主従 ' + (dd.leadership != null ? (dd.leadership >= 0 ? '円' : 'ドル') + ' ' + (Math.abs(dd.leadership) * 100).toFixed(0) + '%' : '—') + '</div>' +
+        '<div class="decomp-label ' + cls.key + '">' + cls.label + '</div>' +
+        '</div>';
+    }
+
+    wrap.innerHTML = bar(d.short, '直近' + (CFG.DECOMP_SHORT_MINUTES / 60).toFixed(0) + '時間') + bar(d.day, '当日(NY17時起点)');
+
+    var interp = document.getElementById('decomp-interp');
+    if (interp) {
+      var multTxt = d.mult != null ? '確信度への反映: ×' + d.mult.toFixed(2) : '';
+      interp.textContent = (d.cls ? d.cls.note : '') + (multTxt ? ' / ' + multTxt : '') +
+        ' ※ ドル要因と円要因の合計は定義上USD/JPYの変化そのものなので、合計は方向シグナルとして加点せず、両者の一致度のみを確信度に使っています。';
+    }
+  }
+
+  /* ---------------- Charts ---------------- */
+  function themeColors() {
+    var cs = getComputedStyle(document.documentElement);
+    return {
+      text: cs.getPropertyValue('--color-text-muted').trim(),
+      grid: cs.getPropertyValue('--color-divider').trim(),
+      primary: cs.getPropertyValue('--color-primary').trim(),
+      accent: cs.getPropertyValue('--color-accent').trim(),
+      success: cs.getPropertyValue('--color-success').trim(),
+      error: cs.getPropertyValue('--color-error').trim()
+    };
+  }
+
+  var priceChart, momentumChart, sessionChart;
+
+  function renderPriceChart() {
+    var candles = state.candles5m;
+    if (!candles.length) return;
+    var closes = candles.map(function (c) { return c.c; });
+    var ema20arr = ema(closes, 20), ema50arr = ema(closes, 50);
+    var vwapArr = vwapSeries(candles);
+
+    var rows = candles.slice(-CFG.PRICE_CHART_BARS);
+    var offset = candles.length - rows.length;
+    var c = themeColors();
+    var labels = rows.map(function (r) { return new Date(r.t).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }); });
+    var prices = rows.map(function (r) { return r.c; });
+    var vols = rows.map(function (r) { return r.vol; });
+    var ema20Line = rows.map(function (_, i) { return ema20arr[offset + i]; });
+    var ema50Line = rows.map(function (_, i) { return ema50arr[offset + i]; });
+    var vwapLine = rows.map(function (_, i) { return vwapArr[offset + i]; });
+    var pivotLine = state.pivot ? rows.map(function () { return state.pivot.p; }) : null;
+
+    var datasets = [
+      { type: 'line', label: '価格 (USD/JPY)', data: prices, yAxisID: 'y', borderColor: c.accent, backgroundColor: c.accent, borderWidth: 1.8, pointRadius: 0, tension: 0.15, order: 1 },
+      { type: 'line', label: 'EMA20', data: ema20Line, yAxisID: 'y', borderColor: c.primary, borderWidth: 1.3, pointRadius: 0, tension: 0.1, order: 2 },
+      { type: 'line', label: 'EMA50', data: ema50Line, yAxisID: 'y', borderColor: c.error, borderWidth: 1.3, pointRadius: 0, tension: 0.1, order: 2 },
+      { type: 'line', label: 'VWAP', data: vwapLine, yAxisID: 'y', borderColor: c.success, borderWidth: 1.3, borderDash: [3, 3], pointRadius: 0, tension: 0.05, order: 2 },
+      { type: 'bar', label: '出来高(ティック参考値)', data: vols, yAxisID: 'y1', backgroundColor: c.primary + '33', borderWidth: 0, order: 3 }
+    ];
+    if (pivotLine) datasets.push({ type: 'line', label: 'ピボットP(前日)', data: pivotLine, yAxisID: 'y', borderColor: c.text, borderWidth: 1, borderDash: [5, 4], pointRadius: 0, order: 2 });
+
+    if (state.asianHigh != null && state.asianLow != null) {
+      var asianHighLine = rows.map(function () { return state.asianHigh; });
+      var asianLowLine = rows.map(function () { return state.asianLow; });
+      datasets.push({
+        type: 'line', label: 'Asian High (東京高値)', data: asianHighLine,
+        yAxisID: 'y', borderColor: '#f2545b', borderWidth: 1, borderDash: [3, 3], pointRadius: 0, order: 2
+      });
+      datasets.push({
+        type: 'line', label: 'Asian Low (東京安値)', data: asianLowLine,
+        yAxisID: 'y', borderColor: '#34d399', borderWidth: 1, borderDash: [3, 3], pointRadius: 0, order: 2
+      });
+    }
+
+    if (!priceChart) {
+      var ctx = document.getElementById('chart-price').getContext('2d');
+      priceChart = new Chart(ctx, {
+        data: { labels: labels, datasets: datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          animation: { duration: 400 },
+          scales: {
+            x: { ticks: { color: c.text, maxTicksLimit: 8, font: { size: 11 } }, grid: { display: false } },
+            y: { position: 'left', ticks: { color: c.text, font: { size: 11 } }, grid: { color: c.grid } },
+            y1: { position: 'right', ticks: { color: c.text, font: { size: 11 } }, grid: { display: false } }
+          },
+          plugins: { legend: { labels: { color: c.text, font: { size: 10 } } } }
+        }
+      });
+    } else {
+      priceChart.data.labels = labels;
+      datasets.forEach(function (ds, i) { priceChart.data.datasets[i] = ds; });
+      priceChart.update();
+    }
+  }
+
+  function renderMomentumChart() {
+    var candles = state.candles5m;
+    if (candles.length < 60) return;
+    var c = themeColors();
+    var closes = candles.map(function (r) { return r.c; });
+    var macdRes = macd(closes, 12, 26, 9);
+    var rsiSeries = calcRsiSeries(closes, 14);
+    var stoch = stochastic(candles, 14, 3, 3);
+
+    var rows = candles.slice(-CFG.MOMENTUM_CHART_BARS);
+    var offset = candles.length - rows.length;
+    var labels = rows.map(function (r) { return new Date(r.t).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }); });
+    var macdLine = rows.map(function (_, i) { return macdRes.macd[offset + i]; });
+    var signalLine = rows.map(function (_, i) { return macdRes.signal[offset + i]; });
+    var histData = rows.map(function (_, i) { return macdRes.hist[offset + i]; });
+    var rsiData = rows.map(function (_, i) { return rsiSeries[offset + i]; });
+    var kData = rows.map(function (_, i) { return stoch.k[offset + i]; });
+    var overbought = rows.map(function () { return 70; });
+    var oversold = rows.map(function () { return 30; });
+    var histColors = histData.map(function (v) { return (v == null) ? 'transparent' : (v >= 0 ? c.success + '99' : c.error + '99'); });
+
+    var datasets = [
+      { type: 'bar', label: 'MACDヒストグラム', data: histData, yAxisID: 'yMacd', backgroundColor: histColors, borderWidth: 0, order: 4 },
+      { type: 'line', label: 'MACD', data: macdLine, yAxisID: 'yMacd', borderColor: c.primary, borderWidth: 1.3, pointRadius: 0, tension: 0.2, order: 3 },
+      { type: 'line', label: 'シグナル', data: signalLine, yAxisID: 'yMacd', borderColor: c.accent, borderWidth: 1.3, pointRadius: 0, tension: 0.2, order: 3 },
+      { type: 'line', label: 'RSI(14)', data: rsiData, yAxisID: 'yRsi', borderColor: c.text, borderWidth: 1.3, pointRadius: 0, tension: 0.2, order: 2 },
+      { type: 'line', label: 'Stoch%K', data: kData, yAxisID: 'yRsi', borderColor: c.success, borderWidth: 1.1, pointRadius: 0, tension: 0.2, order: 1 },
+      { type: 'line', label: '70', data: overbought, yAxisID: 'yRsi', borderColor: c.error, borderWidth: 1, borderDash: [4, 4], pointRadius: 0, order: 0 },
+      { type: 'line', label: '30', data: oversold, yAxisID: 'yRsi', borderColor: c.success, borderWidth: 1, borderDash: [4, 4], pointRadius: 0, order: 0 }
+    ];
+
+    if (!momentumChart) {
+      var ctx = document.getElementById('chart-momentum').getContext('2d');
+      momentumChart = new Chart(ctx, {
+        data: { labels: labels, datasets: datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          animation: { duration: 300 },
+          scales: {
+            x: { ticks: { color: c.text, maxTicksLimit: 8, font: { size: 10 } }, grid: { display: false } },
+            yMacd: { position: 'left', ticks: { color: c.text, font: { size: 10 } }, grid: { color: c.grid } },
+            yRsi: { position: 'right', min: 0, max: 100, ticks: { color: c.text, font: { size: 10 } }, grid: { display: false } }
+          },
+          plugins: { legend: { labels: { color: c.text, font: { size: 10 } } } }
+        }
+      });
+    } else {
+      momentumChart.data.labels = labels;
+      datasets.forEach(function (ds, i) { momentumChart.data.datasets[i] = ds; });
+      momentumChart.update();
+    }
+  }
+
+  function computeSessionRanges() {
+    /* [修正3/4] セッション区分を現地時間(DST追随)に、日付をFX営業日に統一 */
+    var rows = state.candles1hClosed.length ? state.candles1hClosed : state.candles1h;
+    if (rows.length < 24) return [];
+    var byDay = {};
+    rows.forEach(function (c) {
+      var day = c.fx || fxDayKey(c.t);
+      var jh = c.jh != null ? c.jh : jstOf(c.t).h;
+      var lh = londonOf(c.t).h;
+      var nh = nyOf(c.t).h;
+      var sess = null;
+      if (nh >= 8 && nh < 17) sess = 'ny';
+      else if (lh >= 8 && lh < 17) sess = 'london';
+      else if (jh >= 9 && jh < 18) sess = 'tokyo';
+      if (!sess) return;
+      var key = day + '|' + sess;
+      if (!byDay[key]) byDay[key] = { day: day, sess: sess, h: -Infinity, l: Infinity };
+      if (c.h > byDay[key].h) byDay[key].h = c.h;
+      if (c.l < byDay[key].l) byDay[key].l = c.l;
+    });
+    var entries = Object.keys(byDay).map(function (k) { return byDay[k]; });
+    entries.sort(function (a, b) { return a.day.localeCompare(b.day); });
+    return entries.slice(-15);
+  }
+
+  function renderSessionChart() {
+    var entries = computeSessionRanges();
+    if (!entries.length) return;
+    var c = themeColors();
+    var sessColor = { tokyo: c.primary, london: c.accent, ny: c.error };
+    var sessLabel = { tokyo: '東京', london: 'ロンドン', ny: 'NY' };
+    var labels = entries.map(function (e) { return e.day.slice(5) + ' ' + sessLabel[e.sess]; });
+    var ranges = entries.map(function (e) { return (e.h - e.l) / CFG.PIP; });
+    var colors = entries.map(function (e) { return sessColor[e.sess]; });
+
+    if (!sessionChart) {
+      var ctx = document.getElementById('chart-session').getContext('2d');
+      sessionChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ label: '値幅(pips)', data: ranges, backgroundColor: colors, borderWidth: 0 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          animation: { duration: 300 },
+          scales: {
+            x: { ticks: { color: c.text, maxTicksLimit: 15, font: { size: 9 } }, grid: { display: false } },
+            y: { ticks: { color: c.text, font: { size: 10 }, callback: function (v) { return v + 'p'; } }, grid: { color: c.grid } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    } else {
+      sessionChart.data.labels = labels;
+      sessionChart.data.datasets[0].data = ranges;
+      sessionChart.data.datasets[0].backgroundColor = colors;
+      sessionChart.update();
+    }
+
+    renderSessionTable(entries);
+  }
+
+  function renderSessionTable(entries) {
+    var body = document.getElementById('session-table-body');
+    if (!body) return;
+    var sessLabel = { tokyo: '東京', london: 'ロンドン', ny: 'NY' };
+    var rows = entries.slice().reverse().slice(0, 12);
+    if (!rows.length) { body.innerHTML = '<tr class="empty-row"><td colspan="4">データを取得中…</td></tr>'; return; }
+    body.innerHTML = rows.map(function (e) {
+      return '<tr>' +
+        '<td class="tabular">' + e.day + '</td>' +
+        '<td>' + sessLabel[e.sess] + '</td>' +
+        '<td class="tabular">' + fmtJpy(e.h, 3) + ' / ' + fmtJpy(e.l, 3) + '</td>' +
+        '<td class="tabular">' + ((e.h - e.l) / CFG.PIP).toFixed(1) + ' pips</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* ============================================================
+     [修正1] ポーリング再設計
+     旧: 5分足30秒 + 1時間足10分 + 日足20分 + リスク15分 ≒ 3,290クレジット/日
+         → 上限800に対し4倍超。起動から約6時間で枯渇し以降すべて失敗。
+     新: 足確定同期 + バジェット管理 + 非表示/クローズ時停止 ≒ 最大710クレジット/日
+     ============================================================ */
+
+  /* 足確定の delayMs 後に発火する境界同期スケジューラ */
+  function msToNextBoundary(intervalMs, delayMs) {
+    var now = Date.now();
+    var next = Math.floor((now - delayMs) / intervalMs) * intervalMs + intervalMs + delayMs;
+    while (next <= now) next += intervalMs;
+    return next - now;
+  }
+  function scheduleAligned(intervalMs, delayMs, fn) {
+    function tick() {
+      try { fn(); } catch (e) { console.warn(e); }
+      setTimeout(tick, msToNextBoundary(intervalMs, delayMs));
+    }
+    setTimeout(tick, msToNextBoundary(intervalMs, delayMs));
+  }
+
+  /* 取得可否の判定: バックオフ / 日次バジェット / 画面表示 / 市場クローズ */
+  function shouldFetch(cat, force) {
+    if (force) return budget.canSpend(cat, 1);
+    if (inBackoff()) { state.apiBlockedReason = 'レート制限の待機中'; return false; }
+    if (!budget.canSpend(cat, 1)) { state.apiBlockedReason = '本日のAPIクレジット枠を保護中 (' + cat + ')'; return false; }
+    if (document.hidden) { state.apiBlockedReason = '非表示のため取得を停止中'; return false; }
+    var sess = state.session;
+    if (sess && sess.closed) { state.apiBlockedReason = '市場クローズ中のため取得を停止'; return false; }
+    state.apiBlockedReason = null;
+    return true;
+  }
+
+  function pollIntraday(force) {
+    if (!shouldFetch('bars5m', force)) { refreshClosedSeries(); recomputeAndRenderAll(); return; }
+    budget.spend('bars5m', 1);
+    throttled(function () {
+      return fetchTwelveData(CFG.INTRADAY_INTERVAL, CFG.INTRADAY_OUTPUTSIZE);
+    }).then(function (res) {
+      var rows = parseTwelveDataCandles(res);
+      if (!rows.length) { state.dataDegraded = true; return; }
+      noteApiSuccess();
+      state.dataDegraded = false;
+      state.candles5m = rows;
+      state.price = rows[rows.length - 1].c;
+      state.lastGoodUpdate = Date.now();
+      state.priceStale = false;
+      refreshClosedSeries();
+      computeTodayRange();
+      state.session = getSessionInfo(new Date());
+      renderTickerKpis();
+      recomputeAndRenderAll();
+    }).catch(function (err) {
+      console.warn('5分足の取得に失敗:', err);
+      noteApiError(err);
+      markStale();
+    });
+  }
+
+  function pollHourly(force) {
+    if (!shouldFetch('bars1h', force)) return;
+    budget.spend('bars1h', 1);
+    throttled(function () {
+      return fetchTwelveData(CFG.HOURLY_INTERVAL, CFG.HOURLY_OUTPUTSIZE);
+    }).then(function (res) {
+      var rows = parseTwelveDataCandles(res);
+      if (!rows.length) return;
+      noteApiSuccess();
+      state.candles1h = rows;
+      refreshClosedSeries();
+      /* [修正4] 日足APIを廃止し、時間足からFX営業日を集計してADR・ピボットを導出 */
+      rebuildFxDailySeries();
+      renderPivotKpi();
+      recomputeAndRenderAll();
+      renderSessionChart();
+    }).catch(function (err) {
+      console.warn('1時間足の取得に失敗:', err);
+      noteApiError(err);
+    });
+  }
+
+  /* 足の途中はティック価格だけを1クレジットで更新する。
+     判断は確定足ベースなので、形成中足を更新してもシグナルは動かない。 */
+  function pollQuote() {
+    if (!shouldFetch('quote')) return;
+    if (!state.candles5m.length) return;
+    budget.spend('quote', 1);
+    throttled(function () { return fetchTwelveQuote(CFG.SYMBOL); }).then(function (res) {
+      var q = parseTwelveQuote(res);
+      if (!q || q.price == null || isNaN(q.price)) return;
+      noteApiSuccess();
+      state.price = q.price;
+      state.lastGoodUpdate = Date.now();
+      state.priceStale = false;
+      updateFormingBar(q.price);
+      computeTodayRange();
+      renderTickerKpis();
+      renderVwapKpi();
+      renderApiStatus();
+    }).catch(function (err) {
+      console.warn('ティック価格の取得に失敗:', err);
+      noteApiError(err);
+      markStale();
+    });
+  }
+
+  /* [#9] クロス通貨の5分足を取得。要因分解の材料になる */
+  function pollCrosses(force) {
+    CFG.CROSS_SYMBOLS.forEach(function (sym, idx) {
+      if (!shouldFetch('cross', force)) return;
+      budget.spend('cross', 1);
+      throttled(function () {
+        var qs = 'symbol=' + encodeURIComponent(sym) + '&interval=' + CFG.INTRADAY_INTERVAL +
+          '&outputsize=' + CFG.CROSS_OUTPUTSIZE + '&order=ASC&timezone=UTC&apikey=' + CFG.TD_API_KEY;
+        return getJSON(CFG.TD_BASE + '?' + qs);
+      }).then(function (res) {
+        var rows = parseTwelveDataCandles(res);
+        if (!rows.length) throw new Error('空のレスポンス: ' + sym);
+        noteApiSuccess();
+        state.crosses[sym] = rows;
+        state.crossErrors[sym] = null;
+        recomputeAndRenderAll();
+      }).catch(function (err) {
+        noteApiError(err);
+        state.crossErrors[sym] = err && err.message ? err.message : String(err);
+        renderDecomposition();
+      });
+    });
+  }
+
+  /* 値幅モデルの学習用に長期5分足を取得する。
+     outputsizeを増やしてもクレジットは1なので、頻度を落として使う。 */
+  function pollVolHistory(force) {
+    if (!shouldFetch('volhist', force)) return;
+    budget.spend('volhist', 1);
+    throttled(function () {
+      return fetchTwelveData(CFG.INTRADAY_INTERVAL, CFG.VOL_HISTORY_OUTPUTSIZE);
+    }).then(function (res) {
+      var rows = parseTwelveDataCandles(res);
+      if (rows.length < CFG.VOL_MIN_LOOKBACK + CFG.VOL_HORIZON_BARS) return;
+      noteApiSuccess();
+      state.candles5mLong = rows;
+      fitVolModel(closedCandles(rows, INTERVAL_MS['5min']));
+      recomputeAndRenderAll();
+    }).catch(function (err) {
+      console.warn('値幅モデル用データの取得に失敗:', err);
+      noteApiError(err);
+    });
+  }
+
+  function pollRiskSentiment() {
+    if (!shouldFetch('risk')) return;
+    budget.spend('risk', 1);
+    throttled(function () { return fetchQuoteWithFallback(CFG.SPX_SYMBOLS); }).then(function (result) {
+      noteApiSuccess();
+      state.spx = result.quote.price; state.spxChangePct = result.quote.changePct;
+      state.spxAvailable = true; state.spxError = null; state.spxSymbolUsed = result.symbolUsed;
+      renderRiskKpis();
+      recomputeAndRenderAll();
+    }).catch(function (err) {
+      noteApiError(err);
+      state.spxAvailable = false;
+      state.spxError = err && err.message ? err.message : String(err);
+      renderRiskKpis();
+    });
+
+    if (!budget.canSpend('risk', 1)) return;
+    budget.spend('risk', 1);
+    throttled(function () { return fetchQuoteWithFallback(CFG.NKY_SYMBOLS); }).then(function (result) {
+      noteApiSuccess();
+      state.nikkei = result.quote.price; state.nikkeiChangePct = result.quote.changePct;
+      state.nikkeiAvailable = true; state.nikkeiError = null; state.nikkeiSymbolUsed = result.symbolUsed;
+      renderRiskKpis();
+    }).catch(function (err) {
+      noteApiError(err);
+      state.nikkeiAvailable = false;
+      state.nikkeiError = err && err.message ? err.message : String(err);
+      renderRiskKpis();
+    });
+  }
+
+  /* API残量・確定足の状態を可視化する */
+  function renderApiStatus() {
+    var el = document.getElementById('api-status');
+    if (!el) return;
+    var used = budget.used, limit = CFG.API_DAILY_LIMIT;
+    var left = budget.serverLeft != null ? budget.serverLeft : (limit - used);
+    var pctUsed = Math.min(100, (used / limit) * 100);
+    var cls = pctUsed >= 90 ? 'down' : (pctUsed >= 70 ? 'flat' : 'up');
+
+    var barTxt = '確定足待機中';
+    if (state.formingBarEndsAt) {
+      var remainMs = state.formingBarEndsAt - Date.now();
+      if (remainMs > 0) {
+        var mm = Math.floor(remainMs / 60000), ss = Math.floor((remainMs % 60000) / 1000);
+        barTxt = '次の5分足確定まで ' + mm + ':' + pad2(ss);
+      } else {
+        barTxt = '5分足の確定を取得中';
+      }
+    }
+    var extra = state.apiBlockedReason ? ' · ' + state.apiBlockedReason : '';
+    el.className = 'api-status ' + cls;
+    el.innerHTML = '<span class="tabular">API ' + used + '/' + limit + ' (残 ' + left + ')</span>' +
+      '<span class="api-status-sep">·</span><span class="tabular">' + barTxt + '</span>' +
+      (extra ? '<span class="api-status-note">' + extra + '</span>' : '');
+  }
+
+  function renderEventCalendar() {
+    var body = document.getElementById('event-calendar-body');
+    if (!body) return;
+    var er = state.eventRisk;
+    var events = er && er.upcomingEvents ? er.upcomingEvents : [];
+    if (!events.length) { body.innerHTML = '<tr class="empty-row"><td colspan="3">データを算出中…</td></tr>'; return; }
+    var eventLabelMap = { fomc: 'FOMC', boj: 'BOJ金融政策決定会合', cpi: '米CPI', nfp: '米雇用統計(NFP)' };
+    var now = Date.now();
+    body.innerHTML = events.map(function (e) {
+      var hoursUntil = (e.timeMs - now) / (60 * 60 * 1000);
+      var daysUntil = hoursUntil / 24;
+      var countdownText = daysUntil >= 1 ? '約' + Math.floor(daysUntil) + '日後' : '約' + Math.max(0, hoursUntil).toFixed(0) + '時間後';
+      var isNear = hoursUntil <= CFG.EVENT_RISK_WINDOW_HOURS;
+      return '<tr' + (isNear ? ' class="new-row"' : '') + '>' +
+        '<td>' + (eventLabelMap[e.type] || e.name) + '</td>' +
+        '<td class="tabular">' + e.label + '</td>' +
+        '<td class="tabular">' + countdownText + (isNear ? ' <span class="squeeze-badge" style="margin-left:4px">要警戒</span>' : '') + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function renderDataFreshnessBanner() {
+    var banner = document.getElementById('data-freshness-banner');
+    if (!banner) return;
+    var warnings = state.dataFreshnessWarnings || [];
+    if (!warnings.length) { banner.hidden = true; return; }
+    banner.hidden = false;
+    var hasUrgent = warnings.some(function (w) { return w.level === 'urgent'; });
+    banner.className = 'market-closed-banner data-freshness-banner' + (hasUrgent ? ' urgent' : ' soon');
+    var icon = hasUrgent ? '🛠 データ更新が必要です: ' : '📅 まもなく更新が必要です: ';
+    banner.innerHTML = icon + '<ul>' + warnings.map(function (w) { return '<li>' + w.text + '</li>'; }).join('') + '</ul>';
+  }
+
+  function recomputeAndRenderAll() {
+    refreshClosedSeries();
+    if (!state.candles5mClosed.length || !state.candles1hClosed.length) { renderApiStatus(); return; }
+    var now = new Date();
+    /* [修正2] フロー判定も確定足で行う (スイープの誤検知・点滅を防ぐ) */
+    state.tokyoFlow = computeTokyoFlow(state.candles5mClosed, now);
+    state.londonFlow = computeLondonFlow(state.candles5mClosed, now);
+    computeEventRisk();
+    computeDataFreshness();
+    computeEventStage();
+    computeMarketCondition();
+    computeHourProfile();
+    renderHourProfile();
+    renderPriceChart();
+    renderMomentumChart();
+    renderHtfKpi();
+    renderVwapKpi();
+    renderEventRiskBanner();
+    renderEventCalendar();
+    renderDataFreshnessBanner();
+    renderCondition();
+    renderStopGuide();
+    renderDecomposition();
+    renderApiStatus();
+    captureSignalSnapshot();   /* [#14] 確定足ごとにシグナルを保存 */
+  }
+
+  /* [修正1] 成功していても鮮度が落ちたら警告する (旧実装はfetch失敗時しか判定しなかった) */
+  function markStale() {
+    var sess = state.session;
+    var stale;
+    if (sess && sess.closed) stale = false;
+    else stale = !state.lastGoodUpdate || (Date.now() - state.lastGoodUpdate > CFG.STALE_THRESHOLD_MS);
+    state.priceStale = stale;
+    var dot = document.getElementById('live-dot');
+    if (dot) { if (stale) dot.classList.add('stale'); else dot.classList.remove('stale'); }
+    var updEl = document.getElementById('last-updated');
+    if (updEl && stale && state.lastGoodUpdate) {
+      var mins = Math.floor((Date.now() - state.lastGoodUpdate) / 60000);
+      updEl.textContent = '未更新 ' + mins + '分';
+    }
+    renderApiStatus();
+  }
+
+  /* [第2段階] 口座残高＆リスク設定の初期化とリスナーバインド */
+  function initAccountSettings() {
+    var savedBalance = localStorage.getItem('sbi_balance');
+    var savedRisk = localStorage.getItem('sbi_risk');
+    if (savedBalance) state.accountBalance = parseFloat(savedBalance) || CFG.DEFAULT_ACCOUNT_BALANCE;
+    if (savedRisk) state.riskPercent = parseFloat(savedRisk) || CFG.DEFAULT_RISK_PERCENT;
+
+    var balInput = document.getElementById('cfg-balance');
+    var riskSelect = document.getElementById('cfg-risk');
+
+    if (balInput) {
+      balInput.value = state.accountBalance;
+      balInput.addEventListener('input', function () {
+        var v = parseFloat(balInput.value);
+        if (v > 0) {
+          state.accountBalance = v;
+          localStorage.setItem('sbi_balance', v);
+          renderStopGuide();
+        }
+      });
+    }
+
+    if (riskSelect) {
+      riskSelect.value = state.riskPercent.toString();
+      riskSelect.addEventListener('change', function () {
+        var v = parseFloat(riskSelect.value);
+        if (v > 0) {
+          state.riskPercent = v;
+          localStorage.setItem('sbi_risk', v);
+          renderStopGuide();
+        }
+      });
+    }
+  }
+
+  /* ============================================================
+     [#14] シグナル履歴の永続化・アウトカム計測・キャリブレーション
+     ------------------------------------------------------------
+     このダッシュボードには従来「シグナルが当たっていたか」を測る
+     仕組みが無く、重み(0.45/0.30/…)も閾値(±15/±40, ±20/±45)も
+     根拠のない手打ち値だった。ここでは
+       ①確定足ごとにシグナルを丸ごと保存し
+       ②数時間後の実際の値動きでアウトカムを自動ラベリングし
+       ③スコア帯別の実測勝率・期待値(R)を出す
+     ことで、判断の妥当性を数値で検証できるようにする。
+     保存先は IndexedDB (不可なら localStorage) で、端末内に閉じる。
+     ============================================================ */
+
+  /* ---------------- ストレージ層 ---------------- */
+  var DB = { name: 'usdjpy_monitor_v1', ver: 1, conn: null, usable: null, mode: '判定中' };
+
+  function idbRef() {
+    try { return (typeof indexedDB !== 'undefined') ? indexedDB : null; } catch (e) { return null; }
+  }
+
+  function dbOpen() {
+    if (DB.conn) return Promise.resolve(DB.conn);
+    if (DB.usable === false) return Promise.reject(new Error('IndexedDB利用不可'));
+    return new Promise(function (resolve, reject) {
+      var idb = idbRef();
+      if (!idb) { DB.usable = false; DB.mode = 'localStorage'; reject(new Error('IndexedDB非対応')); return; }
+      var req;
+      try { req = idb.open(DB.name, DB.ver); } catch (e) { DB.usable = false; DB.mode = 'localStorage'; reject(e); return; }
+      req.onupgradeneeded = function (ev) {
+        var db = ev.target.result;
+        if (!db.objectStoreNames.contains('signals')) db.createObjectStore('signals', { keyPath: 't' });
+        if (!db.objectStoreNames.contains('trades')) db.createObjectStore('trades', { keyPath: 'id' });
+      };
+      req.onsuccess = function () { DB.conn = req.result; DB.usable = true; DB.mode = 'IndexedDB'; resolve(DB.conn); };
+      req.onerror = function () { DB.usable = false; DB.mode = 'localStorage'; reject(req.error || new Error('open失敗')); };
+    });
+  }
+
+  function lsAll(store) {
+    try { return JSON.parse(localStorage.getItem('usdjpy_' + store) || '[]'); } catch (e) { return []; }
+  }
+  function lsWrite(store, arr) {
+    try { localStorage.setItem('usdjpy_' + store, JSON.stringify(arr)); return true; } catch (e) { return false; }
+  }
+  function storeKeyName(store) { return store === 'trades' ? 'id' : 't'; }
+
+  function dbGetAll(store) {
+    return dbOpen().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(store, 'readonly');
+        var rq = tx.objectStore(store).getAll();
+        rq.onsuccess = function () { res(rq.result || []); };
+        rq.onerror = function () { rej(rq.error); };
+      });
+    }).catch(function () { DB.mode = 'localStorage'; return lsAll(store); });
+  }
+
+  function dbPutMany(store, items) {
+    if (!items || !items.length) return Promise.resolve(0);
+    return dbOpen().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(store, 'readwrite');
+        var os = tx.objectStore(store);
+        for (var i = 0; i < items.length; i++) os.put(items[i]);
+        tx.oncomplete = function () { res(items.length); };
+        tx.onerror = function () { rej(tx.error); };
+        tx.onabort = function () { rej(tx.error); };
+      });
+    }).catch(function () {
+      DB.mode = 'localStorage';
+      var k = storeKeyName(store), map = {}, all = lsAll(store);
+      all.forEach(function (r) { map[r[k]] = r; });
+      items.forEach(function (r) { map[r[k]] = r; });
+      var merged = Object.keys(map).map(function (x) { return map[x]; });
+      if (store === 'signals') merged.sort(function (a, b) { return a.t - b.t; });
+      /* localStorage は容量が小さいので直近のみ保持 */
+      if (store === 'signals' && merged.length > 2500) merged = merged.slice(-2500);
+      lsWrite(store, merged);
+      return items.length;
+    });
+  }
+
+  function dbRemove(store, key) {
+    return dbOpen().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).delete(key);
+        tx.oncomplete = function () { res(1); };
+        tx.onerror = function () { rej(tx.error); };
+      });
+    }).catch(function () {
+      var k = storeKeyName(store);
+      lsWrite(store, lsAll(store).filter(function (r) { return r[k] !== key; }));
+      return 1;
+    });
+  }
+
+  function dbClearStore(store) {
+    return dbOpen().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).clear();
+        tx.oncomplete = function () { res(1); };
+        tx.onerror = function () { rej(tx.error); };
+      });
+    }).catch(function () { lsWrite(store, []); return 1; });
+  }
+
+  /* ---------------- 履歴マネージャ ---------------- */
+  var hist = {
+    recs: [], byT: {}, dirty: [], loaded: false,
+    backfilling: false, lastCapturedT: null, calib: null,
+
+    load: function () {
+      var self = this;
+      return dbGetAll('signals').then(function (rows) {
+        rows.sort(function (a, b) { return a.t - b.t; });
+        var cutoff = Date.now() - CFG.HIST_MAX_DAYS * 86400000;
+        self.recs = rows.filter(function (r) { return r && r.t >= cutoff; });
+        self.byT = {};
+        self.recs.forEach(function (r) { self.byT[r.t] = r; });
+        self.loaded = true;
+        return self.recs.length;
+      }).catch(function () { self.loaded = true; return 0; });
+    },
+
+    upsert: function (rec) {
+      var old = this.byT[rec.t];
+      if (old) {
+        /* ライブ記録はバックフィルで上書きしない (ライブの方が入力が完全) */
+        if (old.src === 'live' && rec.src === 'backfill') return false;
+        if (old.o && !rec.o) rec.o = old.o;
+        var i = this.recs.indexOf(old);
+        if (i >= 0) this.recs[i] = rec; else this.recs.push(rec);
+      } else {
+        var n = this.recs.length;
+        this.recs.push(rec);
+        if (n > 0 && this.recs[n - 1].t > rec.t) this.recs.sort(function (a, b) { return a.t - b.t; });
+      }
+      this.byT[rec.t] = rec;
+      this.dirty.push(rec);
+      return true;
+    },
+
+    flush: function () {
+      if (!this.dirty.length) return Promise.resolve(0);
+      var batch = this.dirty.splice(0);
+      return dbPutMany('signals', batch);
+    },
+
+    clear: function () {
+      this.recs = []; this.byT = {}; this.dirty = []; this.lastCapturedT = null; this.calib = null;
+      return dbClearStore('signals');
+    }
+  };
+
+  /* ---------------- 値幅予測の記録と検証 ----------------
+     方向スコアを撤去したので、検証対象は「値幅予測が当たっているか」に変わる。
+     確定足ごとに予測を保存し、3時間後の実測値幅と突き合わせる。 */
+
+  function sessionTag(sess) {
+    if (!sess) return 'off';
+    if (sess.closed) return 'closed';
+    if (sess.overlap) return 'overlap';
+    if (sess.ny) return 'ny';
+    if (sess.london) return 'london';
+    if (sess.tokyo) return 'tokyo';
+    return 'off';
+  }
+  var SESSION_LABEL = { tokyo: '東京', london: 'ロンドン', ny: 'NY', overlap: 'LDN/NY重複', off: '時間外', closed: 'クローズ' };
+
+  function buildVolSnapshot(bar) {
+    var c = state.condition;
+    if (!c || c.status !== 'open' || c.pred == null) return null;
+    return {
+      t: bar.t, p: +bar.c.toFixed(3),
+      pred: +c.pred.toFixed(2),
+      pctl: c.pctl != null ? +c.pctl.toFixed(1) : null,
+      trad: c.tradability,
+      rg: c.regimeKey || null,
+      dir: c.trendDir || null,
+      ss: sessionTag(state.session),
+      jh: bar.jh != null ? bar.jh : jstOf(bar.t).h,
+      act: null
+    };
+  }
+
+  function resolveVolOutcomes() {
+    var bars = (state.candles5mLong && state.candles5mLong.length) ? state.candles5mLong : state.candles5mClosed;
+    if (!bars || bars.length < 2) return 0;
+    var idx = {}, i;
+    for (i = 0; i < bars.length; i++) idx[bars[i].t] = i;
+    var n = 0;
+    for (i = 0; i < hist.recs.length; i++) {
+      var r = hist.recs[i];
+      if (r.act != null || r.pred == null) continue;
+      var bi = idx[r.t];
+      if (bi == null || bi + CFG.VOL_HORIZON_BARS >= bars.length) continue;
+      var fr = futureRangePips(bars, bi, CFG.VOL_HORIZON_BARS);
+      if (fr == null) continue;
+      r.act = +fr.toFixed(2);
+      hist.dirty.push(r);
+      n++;
+    }
+    return n;
+  }
+
+  function computeVolCalibration() {
+    var done = hist.recs.filter(function (r) { return r.act != null && r.pred != null; });
+    if (!done.length) { hist.calib = { n: 0, pending: hist.recs.length }; return hist.calib; }
+    var lp = done.map(function (r) { return Math.log(Math.max(r.pred, 1e-6)); });
+    var la = done.map(function (r) { return Math.log(Math.max(r.act, 1e-6)); });
+    var mean = la.reduce(function (a, b) { return a + b; }, 0) / la.length;
+    var ssRes = 0, ssTot = 0, mae = 0, i;
+    for (i = 0; i < done.length; i++) {
+      ssRes += Math.pow(la[i] - lp[i], 2);
+      ssTot += Math.pow(la[i] - mean, 2);
+      mae += Math.abs(done[i].act - done[i].pred);
+    }
+    var sorted = done.slice().sort(function (a, b) { return a.pred - b.pred; });
+    var q = [], step = Math.floor(sorted.length / 4), names = ['最小', '小', '大', '最大'];
+    for (var k = 0; k < 4 && step > 0; k++) {
+      var seg = sorted.slice(k * step, k === 3 ? sorted.length : (k + 1) * step);
+      if (!seg.length) continue;
+      var mp = seg.map(function (r) { return r.pred; }).sort(function (a, b) { return a - b; });
+      var ma = seg.map(function (r) { return r.act; }).sort(function (a, b) { return a - b; });
+      q.push({ label: names[k], n: seg.length, pred: mp[Math.floor(mp.length / 2)], act: ma[Math.floor(ma.length / 2)] });
+    }
+    var allAct = done.map(function (r) { return r.act; }).sort(function (a, b) { return a - b; });
+    var medAct = allAct[Math.floor(allAct.length / 2)];
+    var poor = done.filter(function (r) { return r.trad === 'poor'; });
+    var poorActs = poor.map(function (r) { return r.act; }).sort(function (a, b) { return a - b; });
+    hist.calib = {
+      n: done.length, pending: hist.recs.length - done.length,
+      r2: ssTot > 0 ? 1 - ssRes / ssTot : null,
+      mae: mae / done.length, quartiles: q, medAct: medAct,
+      poorN: poor.length,
+      poorHit: poor.length ? poor.filter(function (r) { return r.act <= medAct; }).length / poor.length * 100 : null,
+      poorActMed: poorActs.length ? poorActs[Math.floor(poorActs.length / 2)] : null
+    };
+    return hist.calib;
+  }
+
+  function captureSignalSnapshot() {
+    if (!hist.loaded) return;
+    var bars = state.candles5mClosed;
+    if (!bars.length) return;
+    var bar = bars[bars.length - 1];
+    if (hist.lastCapturedT === bar.t) return;
+    if (state.session && state.session.closed) return;
+    var snap = buildVolSnapshot(bar);
+    if (!snap) return;
+    hist.upsert(snap);
+    hist.lastCapturedT = bar.t;
+    resolveVolOutcomes();
+    hist.flush();
+    computeVolCalibration();
+    renderCalibration();
+  }
+
+  /* ---------------- 描画: 値幅予測の検証 ---------------- */
+  function renderCalibration() {
+    var c = hist.calib;
+    var note = document.getElementById('calib-note');
+    var body = document.getElementById('calib-body');
+    var verdict = document.getElementById('calib-caveat');
+    if (!body) return;
+    if (!c || !c.n) {
+      body.innerHTML = '<tr class="empty-row"><td colspan="4">判定待ち — 各予測は' +
+        (CFG.VOL_HORIZON_BARS * 5 / 60).toFixed(0) + '時間後に実測値幅と突き合わせます</td></tr>';
+      if (note) note.textContent = '保存 ' + hist.recs.length + '件 / 判定済 0件 · ' + DB.mode;
+      if (verdict) verdict.textContent = '値幅予測が実際に当たっているかを、この端末の記録で検証します。';
+      return;
+    }
+    if (note) note.textContent = '判定済 ' + c.n + '件 / 判定待ち ' + c.pending + '件 · ' + DB.mode;
+    body.innerHTML = c.quartiles.map(function (q) {
+      var cls = Math.abs(q.act - q.pred) / Math.max(q.act, 1) < 0.25 ? 'up' : 'flat';
+      return '<tr><td>' + q.label + '</td><td class="tabular">' + q.n + '</td>' +
+        '<td class="tabular">' + q.pred.toFixed(1) + ' p</td>' +
+        '<td class="tabular ' + cls + '">' + q.act.toFixed(1) + ' p</td></tr>';
+    }).join('');
+    if (verdict) {
+      var parts = ['決定係数 R² = ' + (c.r2 != null ? c.r2.toFixed(3) : '—') +
+        '(バックテストの検証値は0.559)、平均絶対誤差 ' + c.mae.toFixed(1) + 'pips。'];
+      if (c.poorN >= 10) {
+        parts.push('「見送り推奨」と判定した' + c.poorN + '件のうち、実際に値幅が中央値以下だったのは ' +
+          c.poorHit.toFixed(0) + '%(当てずっぽうなら50%)。実測値幅の中央は' + c.poorActMed.toFixed(1) + 'pipsでした。');
+      }
+      parts.push('方向は予測しません。3ヶ月のバックテストで方向予測の決定係数はR²=0.012にとどまり、重み調整・符号反転・最適線形結合・決済方法の変更のいずれも未学習期間で機能しなかったためです。');
+      verdict.textContent = parts.join(' ');
+    }
+    renderCalibChart();
+  }
+
+  var calibChart;
+  function renderCalibChart() {
+    var c = hist.calib, el = document.getElementById('chart-calib');
+    if (!el || !c || !c.n || !c.quartiles || !c.quartiles.length) return;
+    var tc = themeColors();
+    var labels = c.quartiles.map(function (q) { return q.label; });
+    var ds = [
+      { label: '予測(pips)', data: c.quartiles.map(function (q) { return +q.pred.toFixed(1); }), backgroundColor: tc.grid, borderWidth: 0 },
+      { label: '実測(pips)', data: c.quartiles.map(function (q) { return +q.act.toFixed(1); }), backgroundColor: tc.success + 'cc', borderWidth: 0 }
+    ];
+    if (!calibChart) {
+      calibChart = new Chart(el.getContext('2d'), {
+        type: 'bar', data: { labels: labels, datasets: ds },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+          scales: { x: { ticks: { color: tc.text, font: { size: 10 } }, grid: { display: false } },
+                    y: { ticks: { color: tc.text, font: { size: 10 } }, grid: { color: tc.grid } } },
+          plugins: { legend: { labels: { color: tc.text, font: { size: 10 } } } }
+        }
+      });
+    } else {
+      calibChart.data.labels = labels;
+      calibChart.data.datasets = ds;
+      calibChart.update();
+    }
+  }
+
+  /* ---------------- 書き出し / 読み込み ---------------- */
+  function downloadFile(name, text, mime) {
+    try {
+      var blob = new Blob([text], { type: mime || 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+    } catch (e) { console.warn('書き出しに失敗:', e); }
+  }
+
+  function csvEscape(v) {
+    if (v == null) return '';
+    var s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function exportSignalsCsv() {
+    var cols = ['時刻', '価格', '予測値幅(pips)', '実測値幅(pips)', '分位%', 'トレード適性', '相場つき', '上位足の向き', 'セッション', 'JST時'];
+    var lines = [cols.join(',')];
+    hist.recs.forEach(function (r) {
+      lines.push([new Date(r.t).toISOString(), r.p, r.pred, r.act, r.pctl, r.trad, r.rg, r.dir, r.ss, r.jh].map(csvEscape).join(','));
+    });
+    downloadFile('usdjpy_signals_' + new Date().toISOString().slice(0, 10) + '.csv',
+      '\ufeff' + lines.join('\n'), 'text/csv;charset=utf-8');
+  }
+
+  /* ---------------- UIバインド ---------------- */
+  /* パネルの折りたたみ。開閉状態は端末に保存する */
+  function bindCollapsibles() {
+    if (!document.querySelectorAll) return;
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem('usdjpy_collapse') || '{}'); } catch (e) {}
+    var sections = document.querySelectorAll('.collapsible');
+    if (!sections || !sections.length) return;
+    Array.prototype.forEach.call(sections, function (sec) {
+      var key = sec.getAttribute('data-collapse');
+      var head = sec.querySelector('.collapse-head');
+      if (!head) return;
+      var open = saved[key] === true;
+      function apply() {
+        if (open) sec.classList.remove('collapsed');
+        else sec.classList.add('collapsed');
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+      apply();
+      head.addEventListener('click', function () {
+        open = !open;
+        apply();
+        saved[key] = open;
+        try { localStorage.setItem('usdjpy_collapse', JSON.stringify(saved)); } catch (e) {}
+        /* 開いた直後はキャンバスのサイズが確定していないので再描画する */
+        if (open) setTimeout(function () {
+          if (key === 'session-range') renderSessionChart();
+          if (key === 'decomp') renderDecomposition();
+        }, 30);
+      });
+    });
+  }
+
+  function bindHistoryUi() {
+    /* 書き出し・消去は誤操作しやすいのでメニューの中に隠す */
+    var menuBtn = document.getElementById('btn-hist-menu');
+    var menu = document.getElementById('hist-menu');
+    if (menuBtn && menu) {
+      /* HTMLのhidden属性に依存せず、常に閉じた状態から始める */
+      var menuOpen = false;
+      menu.hidden = true;
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.addEventListener('click', function () {
+        menuOpen = !menuOpen;
+        menu.hidden = !menuOpen;
+        menuBtn.setAttribute('aria-expanded', menuOpen ? 'true' : 'false');
+        if (menuOpen) menuBtn.classList.add('open'); else menuBtn.classList.remove('open');
+      });
+    }
+    var hx = document.getElementById('btn-hist-export');
+    if (hx) hx.addEventListener('click', exportSignalsCsv);
+    var hc = document.getElementById('btn-hist-clear');
+    var clearArmed = false, clearTimer = null;
+    if (hc) hc.addEventListener('click', function () {
+      /* 1回目は確認、2回目で実行(誤タップ対策) */
+      if (!clearArmed) {
+        clearArmed = true;
+        hc.textContent = 'もう一度押すと消去されます';
+        hc.classList.add('armed');
+        clearTimer = setTimeout(function () {
+          clearArmed = false;
+          hc.textContent = '記録をすべて消去';
+          hc.classList.remove('armed');
+        }, 5000);
+        return;
+      }
+      clearTimeout(clearTimer);
+      clearArmed = false;
+      hc.textContent = '記録をすべて消去';
+      hc.classList.remove('armed');
+      hist.clear().then(function () {
+        computeVolCalibration();
+        renderCalibration();
+        setText('hist-status', 'シグナル履歴を消去しました');
+      });
+    });
+  }
+
+  function initSignalHistory() {
+    bindHistoryUi();
+    /* 折りたたみは補助的なUIなので、失敗しても履歴処理は続行する */
+    try { bindCollapsibles(); } catch (e) { console.warn('折りたたみUIの初期化に失敗:', e); }
+    hist.load().then(function (n) {
+      setText('hist-status', '記録 ' + n + '件を読み込み (' + DB.mode + ')');
+      resolveVolOutcomes();
+      hist.flush();
+      computeVolCalibration();
+      renderCalibration();
+    });
+  }
+
+  /* ---------------- ボット シグナル監視パネル (usdjpy-signal-bot連携) ---------------- */
+  var BOTSIG_LS_KEY = 'usdjpy_botsig_cfg_v1';
+  var BOTSIG_REFRESH_MS = 5 * 60 * 1000; /* 5分おきに再取得(GitHub APIレート制限に余裕を持たせる) */
+
+  function botsigLoadCfg() {
+    try {
+      var raw = localStorage.getItem(BOTSIG_LS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function botsigSaveCfg(cfg) {
+    try { localStorage.setItem(BOTSIG_LS_KEY, JSON.stringify(cfg)); } catch (e) {}
+  }
+
+  function botsigFmtJst(utcStr) {
+    /* "YYYY-MM-DD HH:MM:SS" (UTC) を JST文字列に変換 */
+    if (!utcStr) return '—';
+    var d = new Date(utcStr.replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return utcStr;
+    var jst = new Date(d.getTime() + 9 * 3600 * 1000);
+    var p = function (n) { return String(n).padStart(2, '0'); };
+    return (jst.getUTCMonth() + 1) + '/' + jst.getUTCDate() + ' ' + p(jst.getUTCHours()) + ':' + p(jst.getUTCMinutes());
+  }
+
+  function renderBotSignalTable(list) {
+    var tb = document.getElementById('botsig-body');
+    if (!tb) return;
+    if (!list || !list.length) {
+      tb.innerHTML = '<tr class="empty-row"><td colspan="5">シグナル履歴はまだありません</td></tr>';
+      return;
+    }
+    var rows = list.slice(0, 30).map(function (r) {
+      var dirClass = r.direction === 'LONG' ? 'up' : 'down';
+      return '<tr>' +
+        '<td>' + botsigFmtJst(r.bar_time_utc) + '</td>' +
+        '<td>' + (r.id || '') + '</td>' +
+        '<td>' + (r.name || '') + '</td>' +
+        '<td class="' + dirClass + '">' + (r.direction || '') + '</td>' +
+        '<td class="tabular">' + (r.close != null ? r.close : '—') + '</td>' +
+        '</tr>';
+    });
+    tb.innerHTML = rows.join('');
+  }
+
+  function fetchBotSignalHistory() {
+    var cfg = botsigLoadCfg();
+    var statusEl = document.getElementById('botsig-status');
+    var noteEl = document.getElementById('botsig-note');
+    if (!cfg || !cfg.owner || !cfg.repo || !cfg.token) {
+      if (statusEl) statusEl.textContent = '未設定(⚙から接続情報を入力してください)';
+      if (noteEl) noteEl.textContent = '未設定';
+      return;
+    }
+    if (statusEl) statusEl.textContent = '取得中…';
+    var url = 'https://api.github.com/repos/' + encodeURIComponent(cfg.owner) + '/' +
+      encodeURIComponent(cfg.repo) + '/contents/signals_history.json';
+    fetch(url, {
+      headers: {
+        'Authorization': 'Bearer ' + cfg.token,
+        'Accept': 'application/vnd.github.raw+json'
+      }
+    }).then(function (resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.text();
+    }).then(function (text) {
+      var list;
+      try { list = JSON.parse(text); } catch (e) {
+        /* raw+jsonが効かない環境向けフォールバック: base64デコード */
+        var obj = JSON.parse(text);
+        list = JSON.parse(decodeURIComponent(escape(atob(obj.content.replace(/\n/g, '')))));
+      }
+      renderBotSignalTable(list);
+      var now = new Date();
+      if (statusEl) statusEl.textContent = '最終取得: ' + now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      if (noteEl) noteEl.textContent = list.length + '件のシグナル履歴';
+    }).catch(function (err) {
+      if (statusEl) statusEl.textContent = '取得失敗: ' + err.message + '(トークン・リポジトリ名を確認してください)';
+      console.warn('シグナル履歴の取得に失敗:', err);
+    });
+  }
+
+  function initBotSignalPanel() {
+    var cfg = botsigLoadCfg();
+    if (cfg) {
+      var oEl = document.getElementById('botsig-owner');
+      var rEl = document.getElementById('botsig-repo');
+      if (oEl) oEl.value = cfg.owner || '';
+      if (rEl) rEl.value = cfg.repo || '';
+      /* トークンはセキュリティ上、画面には再表示せず空欄のままにする */
+    }
+
+    var settingsPanel = document.getElementById('botsig-settings-panel');
+    var btnSettings = document.getElementById('btn-botsig-settings');
+    if (btnSettings && settingsPanel) {
+      btnSettings.addEventListener('click', function () {
+        settingsPanel.hidden = !settingsPanel.hidden;
+      });
+    }
+
+    var btnRefresh = document.getElementById('btn-botsig-refresh');
+    if (btnRefresh) btnRefresh.addEventListener('click', fetchBotSignalHistory);
+
+    var btnSave = document.getElementById('btn-botsig-save');
+    if (btnSave) {
+      btnSave.addEventListener('click', function () {
+        var owner = (document.getElementById('botsig-owner').value || '').trim();
+        var repo = (document.getElementById('botsig-repo').value || '').trim();
+        var token = (document.getElementById('botsig-token').value || '').trim();
+        var existing = botsigLoadCfg() || {};
+        var next = {
+          owner: owner || existing.owner,
+          repo: repo || existing.repo,
+          token: token || existing.token
+        };
+        botsigSaveCfg(next);
+        document.getElementById('botsig-token').value = '';
+        if (settingsPanel) settingsPanel.hidden = true;
+        fetchBotSignalHistory();
+      });
+    }
+
+    fetchBotSignalHistory();
+    setInterval(fetchBotSignalHistory, BOTSIG_REFRESH_MS);
+  }
+
+  /* ---------------- Boot ---------------- */
+  function boot() {
+    budget.load();
+    initAccountSettings();
+    state.session = getSessionInfo(new Date());
+    computeDataFreshness();
+    renderDataFreshnessBanner();
+    renderApiStatus();
+    initSignalHistory();   /* [#14] 値幅予測の精度検証履歴の初期化 */
+    initBotSignalPanel();  /* usdjpy-signal-bot シグナル履歴パネルの初期化 */
+    computeHourProfile();
+    renderHourProfile();   /* API取得を待たず、静的テーブルはすぐ表示する */
+
+    /* 初回のみ強制取得 (市場クローズ中・非表示でも初期表示は作る) */
+    pollHourly(true);
+    pollIntraday(true);
+    setTimeout(function () { pollVolHistory(true); }, 3000);
+    setTimeout(function () { pollCrosses(true); }, 12000);
+    setTimeout(function () { pollRiskSentiment(); }, CFG.RISK_POLL_INITIAL_DELAY_MS);
+
+    /* [修正1/2] 足の確定タイミングに同期して取得する
+       5分足 288回/日, 1時間足 24回/日 */
+    scheduleAligned(INTERVAL_MS['5min'], CFG.BAR_CLOSE_DELAY_MS, function () { pollIntraday(); });
+    scheduleAligned(INTERVAL_MS['1h'], CFG.BAR_CLOSE_DELAY_MS + 4000, function () { pollHourly(); });
+
+    /* 足の途中はティック価格のみ (表示中かつ市場オープン時に限定)。
+       シグナルが出ているときだけ高頻度にして、残りの枠を温存する。 */
+    (function scheduleQuote() {
+      var actionable = state.condition && state.condition.tradability === 'good';
+      var wait = actionable ? CFG.QUOTE_POLL_MS : CFG.QUOTE_POLL_IDLE_MS;
+      setTimeout(function () { pollQuote(); scheduleQuote(); }, wait);
+    })();
+    setInterval(function () { pollVolHistory(); }, CFG.VOL_REFIT_MS);
+    setInterval(pollCrosses, CFG.CROSS_POLL_MS);
+    setInterval(pollRiskSentiment, CFG.RISK_POLL_INTERVAL_MS);
+
+    setInterval(markStale, 20000);
+
+    /* 時刻依存の表示だけはAPIを使わずに更新し続ける */
+    setInterval(function () {
+      state.session = getSessionInfo(new Date());
+      computeEventRisk();
+      computeDataFreshness();
+      refreshClosedSeries();
+      renderEventRiskBanner();
+      renderEventCalendar();
+      renderDataFreshnessBanner();
+      renderApiStatus();
+      computeHourProfile();
+      renderHourProfile();
+    }, 30000);
+    setInterval(renderApiStatus, 1000);
+
+    /* 復帰時は即座に追いつく */
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) return;
+      state.session = getSessionInfo(new Date());
+      refreshClosedSeries();
+      var sess = state.session;
+      if (sess && sess.closed) { recomputeAndRenderAll(); return; }
+      /* 最終更新から5分以上空いていれば足を取り直す */
+      if (!state.lastGoodUpdate || Date.now() - state.lastGoodUpdate > INTERVAL_MS['5min']) pollIntraday();
+      else pollQuote();
+    });
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
