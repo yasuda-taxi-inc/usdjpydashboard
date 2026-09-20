@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>USD/JPY デイトレード モニター | SBI証券資金管理・需給アルゴリズム統合版</title>
-<meta name="description" content="USD/JPYのデイトレード(数分〜数時間、当日決済)向けダッシュボード。東京仲値・ゴトー日実需フロー、ロンドンJudas Swing検知、SBI証券専用1%リスク連動ロット計算機を統合。完全クライアントサイド動作。" />
+<title>USD/JPY デイトレード モニター | 需給アルゴリズム統合版</title>
+<meta name="description" content="USD/JPYのデイトレード(数分〜数時間、当日決済)向けダッシュボード。東京仲値・ゴトー日実需フロー、ロンドンJudas Swing検知を統合。完全クライアントサイド動作。" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" />
@@ -212,101 +212,7 @@ a { color: inherit; text-decoration: none; }
 .signal-meta { font-size: var(--text-xs); color: var(--color-text-faint); white-space: nowrap; overflow-x: auto; max-width: 100%; }
 @media (max-width: 640px) { .signal-meta { white-space: normal; word-break: break-word; } }
 
-/* Strategy panel */
-.strategy-panel {
-  display: flex; flex-direction: column; gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-}
-.strategy-panel.strategy-long { border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border)); }
-.strategy-panel.strategy-short { border-color: color-mix(in srgb, var(--color-error) 45%, var(--color-border)); }
-
-.strategy-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
-.strategy-title { font-size: var(--text-base); font-weight: 700; }
-.strategy-panel.strategy-long .strategy-title { color: var(--color-success); }
-.strategy-panel.strategy-short .strategy-title { color: var(--color-error); }
-.strategy-rr { font-size: var(--text-xs); color: var(--color-text-muted); }
-
-.strategy-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: var(--space-3);
-}
-.strategy-item {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  display: flex; flex-direction: column; gap: 4px;
-}
-.strategy-item .l { font-size: var(--text-xs); color: var(--color-text-muted); }
-.strategy-item .v { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 700; }
-.strategy-item.entry .v { color: var(--color-text); }
-.strategy-item.stop .v { color: var(--color-error); }
-.strategy-item.tp .v { color: var(--color-success); }
 .strategy-note { font-size: var(--text-xs); color: var(--color-text-faint); }
-
-/* ============================================================
-   [第2段階アップグレード] SBI証券 資金管理＆ロット計算機
-   ============================================================ */
-.risk-calc-card {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  display: flex; flex-direction: column; gap: var(--space-3);
-}
-.risk-calc-head {
-  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2);
-  border-bottom: 1px solid var(--color-divider);
-  padding-bottom: var(--space-2);
-}
-.risk-calc-title {
-  font-size: var(--text-xs); font-weight: 700; color: var(--color-primary);
-  display: inline-flex; align-items: center; gap: 6px;
-}
-.risk-calc-inputs {
-  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
-}
-.risk-input-group {
-  display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--color-text-muted);
-}
-.risk-input-group input, .risk-input-group select {
-  background: var(--color-surface-offset);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 3px 8px;
-  font-size: var(--text-xs);
-  color: var(--color-text);
-  font-family: var(--font-mono);
-}
-.risk-input-group input[type="number"] { width: 110px; text-align: right; }
-.risk-calc-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: var(--space-2);
-}
-.risk-calc-stat {
-  background: var(--color-surface);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
-  display: flex; flex-direction: column; gap: 2px;
-}
-.risk-calc-stat .l { font-size: 0.7rem; color: var(--color-text-muted); }
-.risk-calc-stat .v { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 700; }
-.risk-calc-stat.primary .v { color: var(--color-primary); }
-.risk-calc-stat.warn .v { color: var(--color-warning); }
-.risk-calc-stat.danger .v { color: var(--color-error); }
-.leverage-tag {
-  display: inline-block; font-size: 0.65rem; padding: 1px 6px; border-radius: var(--radius-full);
-  font-weight: 600; margin-left: 4px;
-}
-.leverage-tag.safe { background: var(--color-success-highlight); color: var(--color-success); }
-.leverage-tag.caution { background: var(--color-warning-highlight); color: var(--color-warning); }
-.leverage-tag.danger { background: var(--color-error-highlight); color: var(--color-error); }
 
 /* Divider & Integrated */
 .panel-divider {
@@ -642,7 +548,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
   border-top: 1px solid var(--color-divider);
   font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-faint);
 }
-.stop-guide { margin-bottom: var(--space-3); }
 
 /* 時間帯適性パネル (静的バックテスト: 245日・休場除外38,558本) */
 .hourprof-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
@@ -698,24 +603,8 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
 .hist-menu-note { margin: 0; font-size: var(--text-xs); color: var(--color-text-faint); }
 .jbtn.armed { border-color: var(--color-error); color: var(--color-error); font-weight: 700; }
 
-/* 両サイドの取引プラン */
-.plan-head { font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-2); }
-.plan-table { width: 100%; }
-.plan-table th, .plan-table td { padding: var(--space-2); text-align: right; }
-.plan-table thead th { font-size: var(--text-xs); color: var(--color-text-muted); font-weight: 600; }
-.plan-table tbody th { text-align: left; }
-.plan-tag {
-  display: inline-block; font-size: var(--text-xs); font-weight: 700;
-  padding: 2px 8px; border-radius: var(--radius-full); white-space: nowrap;
-}
-.plan-tag.long { background: var(--color-success-highlight); color: var(--color-success); }
-.plan-tag.short { background: var(--color-error-highlight); color: var(--color-error); }
-.plan-meta {
-  display: flex; flex-wrap: wrap; gap: var(--space-3);
-  margin-top: var(--space-2); font-family: var(--font-mono);
-  font-size: var(--text-xs); color: var(--color-text-muted);
-}
-.plan-meta small { color: var(--color-text-faint); margin-left: 3px; }
+/* hidden指定の警告枠が、display指定に負けて空の枠として出る不具合の修正 */
+.market-closed-banner[hidden] { display: none; }
 
 /* ============================================================
    スキャル用 値幅ガイド (sg-)  ※既存クラスは変更していない
@@ -812,7 +701,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       </svg>
       <div class="brand-text">
         <h1>USD/JPY デイトレード モニター</h1>
-        <p>東京仲値・ゴトー日実需 / ロンドンJudas Swing / SBI証券ロット計算機</p>
+        <p>東京仲値・ゴトー日実需 / ロンドンJudas Swing / スキャル用値幅ガイド</p>
       </div>
     </div>
     <div class="topbar-right">
@@ -1025,7 +914,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
         </tbody>
       </table>
     </div>
-    <p class="strategy-note">FOMC・BOJ・米CPIは会合日程が確定次第の手動更新値、米雇用統計(NFP)は「毎月第1金曜日」のルールに基づき自動計算しています。</p>
+    <p class="strategy-note">FOMC・BOJは公表済みの日程表(FOMCは2028年1月、BOJは2027年末まで)から、次回を自動で選びます。米CPIは公式日程の手動更新値、米雇用統計(NFP)は「毎月第1金曜日」のルールに基づき自動計算しています。</p>
   </section>
 
   
@@ -1115,107 +1004,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
   
 
   
-
-    <!-- ============ Trading strategy & SBIロット計算機 ============ -->
-  <section class="strategy-panel" id="strategy-panel">
-    <div class="strategy-head">
-      <span class="strategy-title">損切り幅とロットの目安</span>
-    </div>
-    <div class="stop-guide" id="stop-guide"></div>
-
-    <!-- [第2段階アップグレード] SBI証券 資金管理＆発注ロット計算機 -->
-    <div class="risk-calc-card">
-      <div class="risk-calc-head">
-        <span class="risk-calc-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          SBI証券 発注ロット・資金管理計算機 (レバ25倍)
-        </span>
-        <div class="risk-calc-inputs">
-          <div class="risk-input-group">
-            <label for="cfg-balance">口座残高:</label>
-            <input type="number" id="cfg-balance" value="1000000" step="50000" min="10000" />
-            <span>円</span>
-          </div>
-          <div class="risk-input-group">
-            <label for="cfg-risk">許容リスク:</label>
-            <select id="cfg-risk">
-              <option value="0.5">0.5% (極めて慎重)</option>
-              <option value="1.0" selected>1.0% (標準・推奨)</option>
-              <option value="1.5">1.5% (積極的)</option>
-              <option value="2.0">2.0% (短期勝負)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="risk-calc-grid">
-        <div class="risk-calc-stat">
-          <span class="l">1トレード許容損失額</span>
-          <span class="v tabular" id="calc-loss-amount">—</span>
-        </div>
-        <div class="risk-calc-stat primary">
-          <span class="l">SBI通常 (1Lot=1万通貨)</span>
-          <span class="v tabular" id="calc-standard-lots">—</span>
-        </div>
-        <div class="risk-calc-stat primary">
-          <span class="l">SBIミニ (1Lot=1千通貨)</span>
-          <span class="v tabular" id="calc-mini-lots">—</span>
-        </div>
-        <div class="risk-calc-stat">
-          <span class="l">必要証拠金 (拘束資金)</span>
-          <span class="v tabular" id="calc-margin-req">—</span>
-        </div>
-        <div class="risk-calc-stat" id="stat-leverage-box">
-          <span class="l">実効レバレッジ</span>
-          <span class="v tabular" id="calc-leverage">—</span>
-        </div>
-      </div>
-    </div>
-
-    <p class="strategy-note" id="strategy-note">—</p>
-  </section>
-
-  <!-- ============ ボット シグナル監視パネル (usdjpy-signal-bot連携) ============ -->
-  <section class="panel collapsible" data-collapse="bot-signals">
-    <button class="panel-head collapse-head" type="button" aria-expanded="true" aria-controls="collapse-bot-signals">
-      <span class="panel-title">シグナル履歴(監視ボット)</span>
-      <span class="collapse-icon" aria-hidden="true"></span>
-    </button>
-    <div class="collapse-body" id="collapse-bot-signals">
-      <div class="hist-toolbar">
-        <span class="hist-status" id="botsig-status">初期化中…</span>
-        <button class="hist-menu-btn" id="btn-botsig-settings" type="button" aria-label="接続設定">⚙</button>
-        <button class="hist-menu-btn" id="btn-botsig-refresh" type="button" aria-label="再取得">⟳</button>
-      </div>
-      <div class="hist-menu" id="botsig-settings-panel" hidden>
-        <div class="risk-input-group">
-          <label for="botsig-owner">GitHubユーザー名:</label>
-          <input type="text" id="botsig-owner" placeholder="例: yourname" />
-        </div>
-        <div class="risk-input-group">
-          <label for="botsig-repo">リポジトリ名:</label>
-          <input type="text" id="botsig-repo" placeholder="usdjpy-signal-bot" />
-        </div>
-        <div class="risk-input-group">
-          <label for="botsig-token">読み取り専用PAT:</label>
-          <input type="password" id="botsig-token" placeholder="github_pat_..." autocomplete="off" />
-        </div>
-        <p class="hist-menu-note">
-          このブラウザのlocalStorageにのみ保存され、コード自体には含まれません。
-          GitHubの Settings &gt; Developer settings &gt; Fine-grained tokens で、対象リポジトリのみ・Contents:Read-only 権限で発行してください。
-        </p>
-        <button class="jbtn ghost" id="btn-botsig-save">保存して再取得</button>
-      </div>
-      <p class="panel-note" id="botsig-note">未設定</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>時刻(JST)</th><th>ID</th><th>名称</th><th>方向</th><th>価格</th></tr></thead>
-          <tbody id="botsig-body"><tr class="empty-row"><td colspan="5">未接続(⚙から設定してください)</td></tr></tbody>
-        </table>
-      </div>
-      <p class="strategy-note">usdjpy-signal-botの signals_history.json を直接参照しています。表示のみで、ここから発注は行われません。</p>
-    </div>
-  </section>
 
   <p class="settings-note">このダッシュボードは売買方向を提示しません。3ヶ月・実効345サンプルのバックテストで方向予測の決定係数はR²=0.012にとどまり、因子の重み調整・符号反転・最適線形結合・決済方法の変更・確信度乗数のいずれも未学習期間で機能しませんでした。一方、予測対象を「次の3時間の値幅」に変えると検証R²=0.559となり、「動かない局面」を88%の精度で判別できました。そのため本システムは①どれだけ動きそうか②今は取引すべき時間帯か③損切り幅をどこに置くか、を示す道具として動作します。方向の判断は利用者が行ってください。投資助言ではありません。</p>
 
@@ -1321,10 +1109,24 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
        日米金利差は政策金利のハードコード値で日中まったく変動せず、
        バックテスト12410件すべてで同一値だった(分散ゼロ=予測力ゼロ)ため撤去した。
        ここには「いつ動きうるか」という日程だけを残す。 */
-    EVENT_DATES: {
-      nextFomc: '2026-09-16', nextFomcLabel: '9/16(水) 米東部時間14:00',
-      nextBoj: '2026-09-18', nextBojLabel: '9/17-18(木-金)'
-    },
+    /* 会合日程(公表済み)。次回の会合は、ここから今の時刻に応じて自動で選ぶ。
+       各行は [初日, 結果発表日]。2026-09-20 更新。
+       出典: FRB(FOMCカレンダー。2027年は暫定日程)・日本銀行(金融政策決定会合の日程)。
+       日程が尽きる前に、画面上部に更新警告が出る。 */
+    FOMC_SCHEDULE: [
+      ['2026-01-27', '2026-01-28'], ['2026-03-17', '2026-03-18'], ['2026-04-28', '2026-04-29'], ['2026-06-16', '2026-06-17'],
+      ['2026-07-28', '2026-07-29'], ['2026-09-15', '2026-09-16'], ['2026-10-27', '2026-10-28'], ['2026-12-08', '2026-12-09'],
+      ['2027-01-26', '2027-01-27'], ['2027-03-16', '2027-03-17'], ['2027-04-27', '2027-04-28'], ['2027-06-08', '2027-06-09'],
+      ['2027-07-27', '2027-07-28'], ['2027-09-14', '2027-09-15'], ['2027-10-26', '2027-10-27'], ['2027-12-07', '2027-12-08'],
+      ['2028-01-25', '2028-01-26']
+    ],
+    BOJ_SCHEDULE: [
+      ['2026-01-22', '2026-01-23'], ['2026-03-18', '2026-03-19'], ['2026-04-27', '2026-04-28'], ['2026-06-15', '2026-06-16'],
+      ['2026-07-30', '2026-07-31'], ['2026-09-17', '2026-09-18'], ['2026-10-29', '2026-10-30'], ['2026-12-17', '2026-12-18'],
+      ['2027-01-21', '2027-01-22'], ['2027-03-17', '2027-03-18'], ['2027-04-27', '2027-04-28'], ['2027-06-10', '2027-06-11'],
+      ['2027-07-21', '2027-07-22'], ['2027-09-21', '2027-09-22'], ['2027-10-28', '2027-10-29'], ['2027-12-16', '2027-12-17']
+    ],
+    MEETING_LIST_LOW_THRESHOLD: 2,    // 残りの会合がこの件数以下になったら更新を促す
     /* [修正3] イベント時刻は「現地時間」で保持し、UTC変換時にDSTを自動適用する */
     EVENT_LOCAL_TIME: {
       fomc: { tz: 'America/New_York', h: 14, m: 0 },   // 声明発表 米東部14:00
@@ -1445,12 +1247,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     RISK_OFF_DROP_PCT: -1.0,
     RISK_ON_RISE_PCT: 1.0,
     RISK_POLL_INTERVAL_MS: 30 * 60 * 1000,   /* [修正1] 15分→30分: 2シンボル×48回=96/日 で枠内に収める */
-    RISK_POLL_INITIAL_DELAY_MS: 20000,
-
-    /* [第2段階] SBI証券 資金管理パラメータ */
-    DEFAULT_ACCOUNT_BALANCE: 1000000,
-    DEFAULT_RISK_PERCENT: 1.0,
-    SBI_LEVERAGE: 25
+    RISK_POLL_INITIAL_DELAY_MS: 20000
   };
 
   var state = {
@@ -1478,10 +1275,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     nikkei: null, nikkeiChangePct: null, nikkeiAvailable: null, nikkeiError: null, nikkeiSymbolUsed: null,
     eventRisk: null,
     asianHigh: null, asianLow: null, asianOpen: null,
-    tokyoFlow: null, londonFlow: null,
-    // [第2段階] 口座残高＆リスク
-    accountBalance: CFG.DEFAULT_ACCOUNT_BALANCE,
-    riskPercent: CFG.DEFAULT_RISK_PERCENT
+    tokyoFlow: null, londonFlow: null
   };
 
   /* ============================================================
@@ -2113,32 +1907,23 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     };
   }
 
-  /* ---------------- [第2段階] SBI証券 資金管理＆発注ロット計算機 ---------------- */
-  function calculateSbiLotSize(accountBalance, riskPercent, stopLossPips, currentRate) {
-    if (!stopLossPips || stopLossPips <= 0 || !currentRate || currentRate <= 0) return null;
-
-    var maxRiskAmount = accountBalance * (riskPercent / 100);
-    var pipsLossPerCurrency = stopLossPips * CFG.PIP; // 1通貨あたりの損失(円)
-    var targetCurrencies = maxRiskAmount / pipsLossPerCurrency;
-
-    var standardLots = targetCurrencies / 10000; // SBI通常 (1Lot = 1万通貨)
-    var miniLots = targetCurrencies / 1000;       // SBIミニ (1Lot = 1千通貨)
-    var marginRequired = (currentRate * targetCurrencies) / CFG.SBI_LEVERAGE; // 必要証拠金
-    var effectiveLeverage = (currentRate * targetCurrencies) / accountBalance; // 実効レバレッジ
-
-    var leverageStatus = 'safe';
-    if (effectiveLeverage > 20 || marginRequired > accountBalance) leverageStatus = 'danger';
-    else if (effectiveLeverage > 10) leverageStatus = 'caution';
-
-    return {
-      standardLots: Math.floor(standardLots * 10) / 10,
-      miniLots: Math.floor(miniLots),
-      targetCurrencies: Math.round(targetCurrencies),
-      riskAmount: Math.round(maxRiskAmount),
-      marginRequired: Math.round(marginRequired),
-      effectiveLeverage: effectiveLeverage.toFixed(1),
-      leverageStatus: leverageStatus
-    };
+  /* ---------------- 会合日程から「次回」を自動で選ぶ ---------------- */
+  var DOW_JA = ['日', '月', '火', '水', '木', '金', '土'];
+  function dowJa(dateStr) { return DOW_JA[new Date(dateStr + 'T00:00:00Z').getUTCDay()]; }
+  function mdOf(dateStr) { var p = dateStr.split('-'); return (+p[1]) + '/' + (+p[2]); }
+  /* 結果発表の時刻がまだ来ていない最初の会合を返す。日程が尽きていれば null */
+  function nextMeeting(schedule, def, nowMs) {
+    for (var i = 0; i < schedule.length; i++) {
+      if (eventTimeMs(schedule[i][1], def) >= nowMs) {
+        return { start: schedule[i][0], end: schedule[i][1], remaining: schedule.length - i };
+      }
+    }
+    return null;
+  }
+  function fomcLabel(m) { return mdOf(m.end) + '(' + dowJa(m.end) + ') 米東部時間14:00'; }
+  function bojLabel(m) {
+    var e = m.end.split('-'), sameMonth = m.start.split('-')[1] === e[1];
+    return mdOf(m.start) + '-' + (sameMonth ? (+e[2]) : mdOf(m.end)) + '(' + dowJa(m.start) + '-' + dowJa(m.end) + ')';
   }
 
   /* ---------------- 手動更新データの鮮度チェック ---------------- */
@@ -2146,20 +1931,18 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     var now = Date.now();
     var warnings = [];
 
-    var fomcDate = eventTimeMs(CFG.EVENT_DATES.nextFomc, CFG.EVENT_LOCAL_TIME.fomc);
-    var daysToFomc = (fomcDate - now) / (24 * 60 * 60 * 1000);
-    if (daysToFomc < 0) {
-      warnings.push({ level: 'urgent', text: 'FOMC(' + CFG.EVENT_DATES.nextFomcLabel + ')は終了日を過ぎています。政策金利と次回会合日の更新が必要です。' });
-    } else if (daysToFomc <= CFG.STALE_WARNING_DAYS) {
-      warnings.push({ level: 'soon', text: 'FOMC(' + CFG.EVENT_DATES.nextFomcLabel + ')まで残り' + Math.ceil(daysToFomc) + '日。' });
+    var fomcNext = nextMeeting(CFG.FOMC_SCHEDULE, CFG.EVENT_LOCAL_TIME.fomc, now);
+    if (!fomcNext) {
+      warnings.push({ level: 'urgent', text: 'FOMCの日程データが尽きています。新しい日程の追加が必要です。' });
+    } else if (fomcNext.remaining <= CFG.MEETING_LIST_LOW_THRESHOLD) {
+      warnings.push({ level: 'soon', text: 'FOMC日程の残りが' + fomcNext.remaining + '件です。' });
     }
 
-    var bojDate = eventTimeMs(CFG.EVENT_DATES.nextBoj, CFG.EVENT_LOCAL_TIME.boj);
-    var daysToBoj = (bojDate - now) / (24 * 60 * 60 * 1000);
-    if (daysToBoj < 0) {
-      warnings.push({ level: 'urgent', text: 'BOJ会合(' + CFG.EVENT_DATES.nextBojLabel + ')は終了日を過ぎています。政策金利と次回会合日の更新が必要です。' });
-    } else if (daysToBoj <= CFG.STALE_WARNING_DAYS) {
-      warnings.push({ level: 'soon', text: 'BOJ会合(' + CFG.EVENT_DATES.nextBojLabel + ')まで残り' + Math.ceil(daysToBoj) + '日。' });
+    var bojNext = nextMeeting(CFG.BOJ_SCHEDULE, CFG.EVENT_LOCAL_TIME.boj, now);
+    if (!bojNext) {
+      warnings.push({ level: 'urgent', text: 'BOJ会合の日程データが尽きています。新しい日程の追加が必要です。' });
+    } else if (bojNext.remaining <= CFG.MEETING_LIST_LOW_THRESHOLD) {
+      warnings.push({ level: 'soon', text: 'BOJ会合日程の残りが' + bojNext.remaining + '件です。' });
     }
 
     var cpiTimes = (CFG.CPI_DATES || []).map(function (d) { return eventTimeMs(d, CFG.EVENT_LOCAL_TIME.cpi); });
@@ -2197,8 +1980,10 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     var nowMs = now.getTime();
 
     var events = [];
-    events.push({ type: 'fomc', name: 'FOMC', label: CFG.EVENT_DATES.nextFomcLabel, timeMs: eventTimeMs(CFG.EVENT_DATES.nextFomc, CFG.EVENT_LOCAL_TIME.fomc) });
-    events.push({ type: 'boj', name: 'BOJ会合', label: CFG.EVENT_DATES.nextBojLabel, timeMs: eventTimeMs(CFG.EVENT_DATES.nextBoj, CFG.EVENT_LOCAL_TIME.boj) });
+    var fomcM = nextMeeting(CFG.FOMC_SCHEDULE, CFG.EVENT_LOCAL_TIME.fomc, nowMs);
+    if (fomcM) events.push({ type: 'fomc', name: 'FOMC', label: fomcLabel(fomcM), timeMs: eventTimeMs(fomcM.end, CFG.EVENT_LOCAL_TIME.fomc) });
+    var bojM = nextMeeting(CFG.BOJ_SCHEDULE, CFG.EVENT_LOCAL_TIME.boj, nowMs);
+    if (bojM) events.push({ type: 'boj', name: 'BOJ会合', label: bojLabel(bojM), timeMs: eventTimeMs(bojM.end, CFG.EVENT_LOCAL_TIME.boj) });
     (CFG.CPI_DATES || []).forEach(function (dateStr) {
       var t = eventTimeMs(dateStr, CFG.EVENT_LOCAL_TIME.cpi);
       if (t >= nowMs - 24 * 60 * 60 * 1000) events.push({ type: 'cpi', name: '米CPI', label: dateStr, timeMs: t });
@@ -3036,26 +2821,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     banner.textContent = '⚠ ' + (eventLabelMap[ne.type] || ne.name) + '(' + ne.label + ')まで残り約' + Math.max(0, er.hoursToNearest).toFixed(0) + '時間 — 新規ポジション警戒';
   }
 
-  function renderLotCalculator(entry, stop) {
-    if (!entry || !stop) return;
-    var stopPips = Math.abs(entry - stop) / CFG.PIP;
-    var res = calculateSbiLotSize(state.accountBalance, state.riskPercent, stopPips, entry);
-    if (!res) return;
-
-    setText('calc-loss-amount', res.riskAmount.toLocaleString('ja-JP') + ' 円 (' + state.riskPercent.toFixed(1) + '%)');
-    setText('calc-standard-lots', res.standardLots.toFixed(1) + ' Lot (' + (res.standardLots * 10000).toLocaleString('ja-JP') + '通貨)');
-    setText('calc-mini-lots', res.miniLots.toLocaleString('ja-JP') + ' Lot (' + (res.miniLots * 1000).toLocaleString('ja-JP') + '通貨)');
-    setText('calc-margin-req', res.marginRequired.toLocaleString('ja-JP') + ' 円');
-
-    var levBox = document.getElementById('stat-leverage-box');
-    var levEl = document.getElementById('calc-leverage');
-    if (levEl && levBox) {
-      var badgeText = res.leverageStatus === 'safe' ? '安全圏' : (res.leverageStatus === 'caution' ? '注意' : '過大警告');
-      levEl.innerHTML = res.effectiveLeverage + ' 倍 <span class="leverage-tag ' + res.leverageStatus + '">' + badgeText + '</span>';
-      levBox.className = 'risk-calc-stat ' + (res.leverageStatus === 'danger' ? 'danger' : (res.leverageStatus === 'caution' ? 'warn' : ''));
-    }
-  }
-
   /* ---------------- 市場コンディション(メイン表示) ---------------- */
   var TRADE_CLS = { poor: 'down', weak: 'flat', ok: 'up', good: 'up', unknown: 'flat' };
 
@@ -3117,45 +2882,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
           ' (検証R²はバックテストで0.559)'
         : '値幅モデル: 学習データ蓄積中（' + VOL.trainN + '/' + CFG.VOL_MIN_SAMPLES + 'サンプル）';
     }
-  }
-
-  /* ---------------- 損切り幅とロット ---------------- */
-  function renderStopGuide() {
-    var c = state.condition;
-    var wrap = document.getElementById('stop-guide');
-    if (!wrap) return;
-    if (!c || c.status !== 'open' || !c.plan) {
-      wrap.innerHTML = '<div class="empty-box">値幅の予測値を算出中です</div>';
-      renderLotCalculator(null, null);
-      return;
-    }
-    var p = c.plan;
-    function row(side, label, cls) {
-      var d = p[side];
-      return '<tr class="plan-' + cls + '">' +
-        '<th scope="row"><span class="plan-tag ' + cls + '">' + label + '</span></th>' +
-        '<td class="tabular">' + fmtJpy(d.stop, 3) + '</td>' +
-        '<td class="tabular">' + fmtJpy(d.tp1, 3) + '</td>' +
-        '<td class="tabular">' + fmtJpy(d.tp2, 3) + '</td></tr>';
-    }
-    wrap.innerHTML =
-      '<div class="plan-head">現在値 <span class="tabular">' + fmtJpy(p.entry, 3) + '</span>' +
-      ' · 想定変動幅 <span class="tabular">' + c.pred.toFixed(0) + 'pips</span> を基準に算出</div>' +
-      '<div class="table-wrap"><table class="plan-table">' +
-      '<thead><tr><th></th><th>損切り</th><th>利確1</th><th>利確2</th></tr></thead>' +
-      '<tbody>' + row('long', '買う場合', 'long') + row('short', '売る場合', 'short') + '</tbody>' +
-      '</table></div>' +
-      '<div class="plan-meta">' +
-      '<span>損切り ' + p.stopPips.toFixed(1) + 'p<small>(3時間以内の到達率 ' + CFG.STOP_REACH_PCT + '%)</small></span>' +
-      '<span>利確1 ' + p.tp1Pips.toFixed(1) + 'p<small>(' + CFG.TP1_REACH_PCT + '%)</small></span>' +
-      '<span>利確2 ' + p.tp2Pips.toFixed(1) + 'p<small>(' + CFG.TP2_REACH_PCT + '%)</small></span>' +
-      '<span>リスクリワード ' + p.rr1.toFixed(2) + ' / ' + p.rr2.toFixed(2) + '</span>' +
-      '</div>' +
-      '<p class="strategy-note">買うか売るかは提示しません。バックテストで方向の的中率は50.0%(95%CI ±5.3)にとどまり、' +
-      'どの相場つきでもコイン投げと区別がつかなかったためです。方向はご自身で決め、決めた側の行をお使いください。' +
-      '水準は検証済みの値幅予測から算出しており、括弧内は3ヶ月976サンプルでの実測到達率です' +
-      '(どちらが先に到達するかは方向判断次第なので、勝率ではありません)。</p>';
-    renderLotCalculator(p.entry, p.long.stop);
   }
 
   /* ---------------- 時間帯適性 (静的テーブル・API不要) ---------------- */
@@ -3725,7 +3451,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     renderEventCalendar();
     renderDataFreshnessBanner();
     renderCondition();
-    renderStopGuide();
     renderDecomposition();
     renderApiStatus();
     captureSignalSnapshot();   /* [#14] 確定足ごとにシグナルを保存 */
@@ -3746,41 +3471,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       updEl.textContent = '未更新 ' + mins + '分';
     }
     renderApiStatus();
-  }
-
-  /* [第2段階] 口座残高＆リスク設定の初期化とリスナーバインド */
-  function initAccountSettings() {
-    var savedBalance = localStorage.getItem('sbi_balance');
-    var savedRisk = localStorage.getItem('sbi_risk');
-    if (savedBalance) state.accountBalance = parseFloat(savedBalance) || CFG.DEFAULT_ACCOUNT_BALANCE;
-    if (savedRisk) state.riskPercent = parseFloat(savedRisk) || CFG.DEFAULT_RISK_PERCENT;
-
-    var balInput = document.getElementById('cfg-balance');
-    var riskSelect = document.getElementById('cfg-risk');
-
-    if (balInput) {
-      balInput.value = state.accountBalance;
-      balInput.addEventListener('input', function () {
-        var v = parseFloat(balInput.value);
-        if (v > 0) {
-          state.accountBalance = v;
-          localStorage.setItem('sbi_balance', v);
-          renderStopGuide();
-        }
-      });
-    }
-
-    if (riskSelect) {
-      riskSelect.value = state.riskPercent.toString();
-      riskSelect.addEventListener('change', function () {
-        var v = parseFloat(riskSelect.value);
-        if (v > 0) {
-          state.riskPercent = v;
-          localStorage.setItem('sbi_risk', v);
-          renderStopGuide();
-        }
-      });
-    }
   }
 
   /* ============================================================
@@ -4223,138 +3913,14 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     });
   }
 
-  /* ---------------- ボット シグナル監視パネル (usdjpy-signal-bot連携) ---------------- */
-  var BOTSIG_LS_KEY = 'usdjpy_botsig_cfg_v1';
-  var BOTSIG_REFRESH_MS = 5 * 60 * 1000; /* 5分おきに再取得(GitHub APIレート制限に余裕を持たせる) */
-
-  function botsigLoadCfg() {
-    try {
-      var raw = localStorage.getItem(BOTSIG_LS_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) { return null; }
-  }
-
-  function botsigSaveCfg(cfg) {
-    try { localStorage.setItem(BOTSIG_LS_KEY, JSON.stringify(cfg)); } catch (e) {}
-  }
-
-  function botsigFmtJst(utcStr) {
-    /* "YYYY-MM-DD HH:MM:SS" (UTC) を JST文字列に変換 */
-    if (!utcStr) return '—';
-    var d = new Date(utcStr.replace(' ', 'T') + 'Z');
-    if (isNaN(d.getTime())) return utcStr;
-    var jst = new Date(d.getTime() + 9 * 3600 * 1000);
-    var p = function (n) { return String(n).padStart(2, '0'); };
-    return (jst.getUTCMonth() + 1) + '/' + jst.getUTCDate() + ' ' + p(jst.getUTCHours()) + ':' + p(jst.getUTCMinutes());
-  }
-
-  function renderBotSignalTable(list) {
-    var tb = document.getElementById('botsig-body');
-    if (!tb) return;
-    if (!list || !list.length) {
-      tb.innerHTML = '<tr class="empty-row"><td colspan="5">シグナル履歴はまだありません</td></tr>';
-      return;
-    }
-    var rows = list.slice(0, 30).map(function (r) {
-      var dirClass = r.direction === 'LONG' ? 'up' : 'down';
-      return '<tr>' +
-        '<td>' + botsigFmtJst(r.bar_time_utc) + '</td>' +
-        '<td>' + (r.id || '') + '</td>' +
-        '<td>' + (r.name || '') + '</td>' +
-        '<td class="' + dirClass + '">' + (r.direction || '') + '</td>' +
-        '<td class="tabular">' + (r.close != null ? r.close : '—') + '</td>' +
-        '</tr>';
-    });
-    tb.innerHTML = rows.join('');
-  }
-
-  function fetchBotSignalHistory() {
-    var cfg = botsigLoadCfg();
-    var statusEl = document.getElementById('botsig-status');
-    var noteEl = document.getElementById('botsig-note');
-    if (!cfg || !cfg.owner || !cfg.repo || !cfg.token) {
-      if (statusEl) statusEl.textContent = '未設定(⚙から接続情報を入力してください)';
-      if (noteEl) noteEl.textContent = '未設定';
-      return;
-    }
-    if (statusEl) statusEl.textContent = '取得中…';
-       var url = 'https://raw.githubusercontent.com/' + encodeURIComponent(cfg.owner) + '/' +
-     encodeURIComponent(cfg.repo) + '/main/signals_history.json';
-    fetch(url)
-    .then(function (resp) {
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      return resp.text();
-    }).then(function (text) {
-      var list;
-      try { list = JSON.parse(text); } catch (e) {
-        /* raw+jsonが効かない環境向けフォールバック: base64デコード */
-        var obj = JSON.parse(text);
-        list = JSON.parse(decodeURIComponent(escape(atob(obj.content.replace(/\n/g, '')))));
-      }
-      renderBotSignalTable(list);
-      var now = new Date();
-      if (statusEl) statusEl.textContent = '最終取得: ' + now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-      if (noteEl) noteEl.textContent = list.length + '件のシグナル履歴';
-    }).catch(function (err) {
-      if (statusEl) statusEl.textContent = '取得失敗: ' + err.message + '(トークン・リポジトリ名を確認してください)';
-      console.warn('シグナル履歴の取得に失敗:', err);
-    });
-  }
-
-  function initBotSignalPanel() {
-    var cfg = botsigLoadCfg();
-    if (cfg) {
-      var oEl = document.getElementById('botsig-owner');
-      var rEl = document.getElementById('botsig-repo');
-      if (oEl) oEl.value = cfg.owner || '';
-      if (rEl) rEl.value = cfg.repo || '';
-      /* トークンはセキュリティ上、画面には再表示せず空欄のままにする */
-    }
-
-    var settingsPanel = document.getElementById('botsig-settings-panel');
-    var btnSettings = document.getElementById('btn-botsig-settings');
-    if (btnSettings && settingsPanel) {
-      btnSettings.addEventListener('click', function () {
-        settingsPanel.hidden = !settingsPanel.hidden;
-      });
-    }
-
-    var btnRefresh = document.getElementById('btn-botsig-refresh');
-    if (btnRefresh) btnRefresh.addEventListener('click', fetchBotSignalHistory);
-
-    var btnSave = document.getElementById('btn-botsig-save');
-    if (btnSave) {
-      btnSave.addEventListener('click', function () {
-        var owner = (document.getElementById('botsig-owner').value || '').trim();
-        var repo = (document.getElementById('botsig-repo').value || '').trim();
-        var token = (document.getElementById('botsig-token').value || '').trim();
-        var existing = botsigLoadCfg() || {};
-        var next = {
-          owner: owner || existing.owner,
-          repo: repo || existing.repo,
-          token: token || existing.token
-        };
-        botsigSaveCfg(next);
-        document.getElementById('botsig-token').value = '';
-        if (settingsPanel) settingsPanel.hidden = true;
-        fetchBotSignalHistory();
-      });
-    }
-
-    fetchBotSignalHistory();
-    setInterval(fetchBotSignalHistory, BOTSIG_REFRESH_MS);
-  }
-
   /* ---------------- Boot ---------------- */
   function boot() {
     budget.load();
-    initAccountSettings();
     state.session = getSessionInfo(new Date());
     computeDataFreshness();
     renderDataFreshnessBanner();
     renderApiStatus();
     initSignalHistory();   /* [#14] 値幅予測の精度検証履歴の初期化 */
-    initBotSignalPanel();  /* usdjpy-signal-bot シグナル履歴パネルの初期化 */
     computeHourProfile();
     renderHourProfile();   /* API取得を待たず、静的テーブルはすぐ表示する */
 
