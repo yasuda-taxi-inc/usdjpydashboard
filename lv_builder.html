@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>「普段」の値幅表 更新ツール</title>
+<style>
+:root{--bg:#0d1117;--panel:#141a23;--panel2:#1a2230;--line:#243040;--text:#e7ecf3;--dim:#8b97a8;--amber:#e3a23a;--red:#e5675c;--teal:#62b7a5;
+  --sans:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",system-ui,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 var(--sans);-webkit-text-size-adjust:100%;
+  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(32px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+main{max-width:560px;margin:0 auto;display:grid;gap:14px}
+h1{margin:0;font-size:18px}
+h2{margin:0 0 8px;font-size:14px;color:var(--dim)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+p{margin:6px 0}
+.dim{color:var(--dim);font-size:13px}
+label{display:block;font-size:13px;color:var(--dim);margin-bottom:4px}
+input{width:100%;height:44px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:0 10px;font:16px var(--mono)}
+button{min-height:46px;padding:0 18px;border-radius:8px;border:1px solid var(--amber);background:var(--amber);color:#1a1207;font:600 15px var(--sans);cursor:pointer}
+button.ghost{background:transparent;color:var(--amber)}
+button:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.bar{height:8px;background:var(--bg);border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;width:0;background:var(--amber);transition:width .2s}
+.msg{margin-top:10px;padding:9px 12px;border-radius:8px;background:var(--panel2);border-left:3px solid var(--line);font-size:14px}
+.msg.err{border-left-color:var(--red)} .msg.ok{border-left-color:var(--teal)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin-top:8px}
+.kv b{font-family:var(--mono);font-weight:600;text-align:right}
+ol{margin:6px 0 0;padding-left:1.3em} li{margin:4px 0}
+textarea{width:100%;height:96px;margin-top:8px;background:var(--bg);color:var(--dim);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px var(--mono)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>「普段」の値幅表 更新ツール</h1>
+    <p class="dim">ダッシュボードが使う「普段の値幅」の表を、最新のデータで作り直します。3か月に1回(1・4・7・10月の初め)が目安です。</p>
+  </header>
+
+  <section class="card">
+    <h2>手順</h2>
+    <ol>
+      <li>Twelve DataのAPIキーを入れます(この端末に保存されます。ほかには送りません)。</li>
+      <li>「表を作る」を押して、終わるまで待ちます(約4分、28回に分けて取得します。API枠は約28クレジット使います)。</li>
+      <li>できた <b>lv_base.json</b> を保存し、<b>index.html と同じフォルダ</b>に入れて、フォルダごとNetlify Dropに置き直します。</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <label for="key">Twelve Data APIキー</label>
+    <input id="key" type="password" autocomplete="off" placeholder="APIキーを貼り付け">
+    <div class="row">
+      <button id="go" type="button">表を作る</button>
+      <button id="stop" class="ghost" type="button" hidden>中止</button>
+    </div>
+    <div class="bar" id="barwrap" hidden><i id="bar"></i></div>
+    <div class="msg" id="msg" hidden></div>
+  </section>
+
+  <section class="card" id="result" hidden>
+    <h2>できあがった表</h2>
+    <div class="kv" id="kv"></div>
+    <div class="row"><button id="dl" type="button">lv_base.json を保存する</button></div>
+    <p class="dim">保存できないときは、下の文字を全部コピーして、lv_base.json という名前で保存してください。</p>
+    <textarea id="txt" readonly aria-label="lv_base.jsonの中身"></textarea>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var PIP = 0.01, DAYS = 250, MIN_SAMPLES = 50, MIN_BARS = 6, SPAN_MIN = 55;
+  var SPAN_DAYS = 14, BACK_DAYS = 380;           // 14日ずつ取得(5,000本の上限に収める)。営業日250日ぶんに足りる約380日前から
+  var DELAY = (typeof window.__LV_DELAY_MS === 'number') ? window.__LV_DELAY_MS : 8000;    // 無料枠は1分に8回まで
+  var nowMs = function () { return (typeof window.__LV_NOW === 'number') ? window.__LV_NOW : Date.now(); };
+  var $ = function (id) { return document.getElementById(id); };
+  var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+
+  var jstF = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  var nyF = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23', timeZoneName: 'short' });
+  function parts(fmt, ms) { var o = {}; fmt.formatToParts(new Date(ms)).forEach(function (p) { o[p.type] = p.value; }); return o; }
+
+  function pctl(a, q) {                          // numpyの線形補間と同じ
+    var s = a.slice().sort(function (x, y) { return x - y; }), k = (s.length - 1) * q / 100, f = Math.floor(k), c = Math.min(f + 1, s.length - 1);
+    return s[f] + (s[c] - s[f]) * (k - f);
+  }
+  function round(v, d) { var m = Math.pow(10, d); return Math.round((v + 1e-12) * m) / m; }
+  function ymd(ms) { return new Date(ms).toISOString().slice(0, 10); }
+
+  /* bars: 時刻の昇順の [{t(ms), h, l}]。直近250営業日(足のある日)から、表と境界を作る */
+  function buildLv(bars, built, days) {
+    days = days || DAYS;
+    var seen = {}, ud = [];
+    bars.forEach(function (b) { var d = Math.floor(b.t / 86400000); if (!seen[d]) { seen[d] = 1; ud.push(d); } });
+    ud = ud.slice(-days); var d0 = ud[0];
+    var w = bars.filter(function (b) { return Math.floor(b.t / 86400000) >= d0; });
+    var n = w.length, rng = new Array(n), grp = new Array(n), tm = new Array(n), i;
+    for (i = 0; i < n; i++) {
+      var j = parts(jstF, w[i].t), slot = ((+j.hour) % 24) * 2 + (+j.minute >= 30 ? 1 : 0);
+      var summer = parts(nyF, w[i].t).timeZoneName === 'EDT';
+      rng[i] = (w[i].h - w[i].l) / PIP; grp[i] = (summer ? 48 : 0) + slot; tm[i] = Math.floor(w[i].t / 60000);
+    }
+    var per = []; for (i = 0; i < 96; i++) per.push([]);
+    for (i = 0; i < n; i++) per[grp[i]].push(rng[i]);
+    var mean = [], p75 = [];
+    for (i = 0; i < 96; i++) {
+      if (per[i].length < MIN_SAMPLES) throw new Error('標本が少ない枠があります(枠' + i + ': ' + per[i].length + '本)。取得できたデータが足りません。');
+      var s = 0; per[i].forEach(function (v) { s += v; });
+      mean.push(round(s / per[i].length, 2)); p75.push(round(pctl(per[i], 75), 2));
+    }
+    var A = [0], B = [0], ratios = [], lo = 0;
+    for (i = 0; i < n; i++) { A.push(A[i] + rng[i]); B.push(B[i] + mean[grp[i]]); }
+    for (i = 0; i < n; i++) {
+      while (tm[lo] < tm[i] - SPAN_MIN) lo++;
+      var cnt = i + 1 - lo;
+      if (cnt >= MIN_BARS) ratios.push(((A[i + 1] - A[lo]) / cnt) / ((B[i + 1] - B[lo]) / cnt));
+    }
+    var pair = function (k) { return [mean[k], p75[k]]; }, sm = [], wi = [];
+    for (i = 0; i < 48; i++) { wi.push(pair(i)); sm.push(pair(48 + i)); }
+    return { summer: sm, winter: wi, ratio: { q25: round(pctl(ratios, 25), 3), q75: round(pctl(ratios, 75), 3), median: round(pctl(ratios, 50), 3) },
+      period: ymd(w[0].t) + '〜' + ymd(w[n - 1].t), bars: n, days: ud.length, built: built, asof: ymd(w[n - 1].t) };
+  }
+
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var running = false, cancelled = false, lastJson = null;
+  function say(text, kind) { var m = $('msg'); m.hidden = false; m.className = 'msg' + (kind ? ' ' + kind : ''); m.textContent = text; }
+  function fmtDt(ms) { var d = new Date(ms); return ymd(ms) + ' ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()); }
+
+  async function fetchWindow(key, s, e) {
+    var url = 'https://api.twelvedata.com/time_series?symbol=USD%2FJPY&interval=5min&order=ASC&timezone=UTC&outputsize=5000' +
+      '&start_date=' + encodeURIComponent(fmtDt(s)) + '&end_date=' + encodeURIComponent(fmtDt(e)) + '&apikey=' + encodeURIComponent(key);
+    for (var attempt = 0; attempt < 4; attempt++) {
+      var res = await fetch(url), js = await res.json();
+      if (js && js.values) return js.values;
+      if (js && js.status === 'error') {
+        if (js.code === 429 || /credits|limit/i.test(js.message || '')) { say('取得の回数制限に達しました。65秒待ってから、やり直します…'); await sleep(65000 * (DELAY ? 1 : 0)); continue; }
+        if (/no data/i.test(js.message || '')) return [];              // 休場だけの期間
+        throw new Error('取得に失敗しました: ' + (js.message || js.code));
+      }
+      return [];
+    }
+    throw new Error('取得の回数制限が続いたため、中止しました。しばらくしてからやり直してください。');
+  }
+
+  async function run() {
+    var key = $('key').value.trim();
+    if (!key) { say('APIキーを入れてください。', 'err'); return; }
+    try { localStorage.setItem('lv_builder_key', key); } catch (e) {}
+    running = true; cancelled = false; $('go').disabled = true; $('stop').hidden = false; $('barwrap').hidden = false; $('result').hidden = true;
+    var end = nowMs(), start = end - BACK_DAYS * 86400000, windows = [], s;
+    for (s = start; s < end; s += SPAN_DAYS * 86400000) windows.push([s, Math.min(s + SPAN_DAYS * 86400000 - 1000, end)]);
+    var bars = [], seen = {};
+    try {
+      for (var k = 0; k < windows.length; k++) {
+        if (cancelled) throw new Error('中止しました。');
+        say('取得中… ' + (k + 1) + ' / ' + windows.length + '(' + ymd(windows[k][0]) + ' から)');
+        $('bar').style.width = ((k) / windows.length * 100) + '%';
+        var vals = await fetchWindow(key, windows[k][0], windows[k][1]);
+        vals.forEach(function (v) {
+          var t = Date.parse(v.datetime.replace(' ', 'T') + 'Z'), h = parseFloat(v.high), l = parseFloat(v.low);
+          if (isFinite(t) && isFinite(h) && isFinite(l) && !seen[t]) { seen[t] = 1; bars.push({ t: t, h: h, l: l }); }
+        });
+        if (k < windows.length - 1) await sleep(DELAY);
+      }
+      bars.sort(function (a, b) { return a.t - b.t; });
+      $('bar').style.width = '100%';
+      if (bars.length < 20000) throw new Error('取得できた足が少なすぎます(' + bars.length + '本)。APIキーと、無料枠の残りを確認してください。');
+      var out = buildLv(bars, ymd(nowMs()));
+      lastJson = JSON.stringify(out);
+      var all = out.summer.concat(out.winter).map(function (x) { return x[0]; }), avg = all.reduce(function (a, b) { return a + b; }, 0) / all.length;
+      $('kv').innerHTML = '<span>作成に使った期間</span><b>' + out.period + '</b><span>営業日の数</span><b>' + out.days + '日</b><span>5分足の本数</span><b>' + out.bars.toLocaleString('ja-JP') +
+        '本</b><span>全時間帯の平均値幅</span><b>' + avg.toFixed(2) + ' pips</b><span>静かの境界(下位25%)</span><b>' + out.ratio.q25.toFixed(3) + '倍</b><span>荒いの境界(上位25%)</span><b>' + out.ratio.q75.toFixed(3) + '倍</b>';
+      $('txt').value = lastJson; $('result').hidden = false;
+      say('できました。下の「保存する」を押して、index.html と同じフォルダに入れてください。', 'ok');
+    } catch (e) { say(e.message || String(e), 'err'); }
+    running = false; $('go').disabled = false; $('stop').hidden = true;
+  }
+
+  $('go').addEventListener('click', run);
+  $('stop').addEventListener('click', function () { cancelled = true; });
+  $('dl').addEventListener('click', function () {
+    if (!lastJson) return;
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([lastJson], { type: 'application/json' })); a.download = 'lv_base.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+  try { var saved = localStorage.getItem('lv_builder_key'); if (saved) $('key').value = saved; } catch (e) {}
+  window.__buildLv = buildLv;                     // テスト用
+})();
+</script>
+</body>
+</html>
