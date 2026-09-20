@@ -734,6 +734,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       <span class="panel-note" id="lv-asof">価格データ待ち</span>
     </div>
     <p class="panel-note" id="lv-status">価格データの取得を待っています。</p>
+    <p class="panel-note" id="lv-table"></p>
 
     <div class="lv-grid">
       <div class="lv-col-l">
@@ -1159,10 +1160,13 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
   };
 
   /* 「普段」の値幅表: 日本時間30分枠×夏冬(米国の夏時間)ごとの、5分足の平均値幅 [平均, 上位25%ライン] (pips)。
-     2021-01〜2026-09の5分足から集計。値幅予測モデルの特徴量と、「いまの値幅」パネルが共用する。
-     ratio は「普段との比」の、静か/荒いの境界(下位25%/上位25%)。水準は時間とともにずれるので、定期的に更新する。 */
-  var LV_BASE = {"summer":[[7.02,8.7],[6.05,7.5],[5.47,7.0],[4.91,6.05],[4.99,6.0],[4.51,5.5],[4.81,5.62],[4.77,5.5],[4.34,5.0],[3.98,5.0],[3.31,4.0],[3.33,4.0],[3.56,4.5],[2.75,3.44],[4.39,5.5],[3.48,4.1],[4.37,5.5],[4.78,6.0],[7.24,9.1],[7.08,9.0],[6.79,8.81],[5.91,7.6],[5.25,6.6],[4.74,6.0],[4.53,5.5],[4.44,5.3],[4.67,5.8],[4.58,5.91],[4.81,6.0],[5.09,6.5],[6.54,8.0],[6.45,8.0],[7.48,9.3],[6.82,8.5],[6.75,8.49],[6.07,7.5],[5.8,7.0],[5.35,6.5],[5.31,6.5],[5.08,6.5],[5.45,7.0],[5.6,7.0],[6.61,8.0],[10.13,11.5],[7.99,10.0],[8.75,11.0],[9.38,11.0],[8.11,10.03]],"winter":[[9.34,12.0],[8.41,10.79],[7.14,9.0],[6.05,8.0],[5.6,7.0],[4.99,6.24],[5.07,6.28],[4.54,6.0],[4.74,6.0],[4.62,5.59],[4.3,5.0],[3.97,5.0],[3.22,4.0],[2.8,3.5],[3.6,4.5],[2.77,3.5],[4.8,6.0],[4.78,6.0],[7.0,9.0],[7.07,9.0],[6.95,9.0],[6.07,8.0],[5.53,7.0],[5.24,6.5],[4.87,6.0],[4.58,6.0],[4.51,6.0],[4.26,5.5],[4.8,6.0],[4.88,6.5],[5.43,7.0],[5.48,7.0],[6.65,8.5],[6.67,8.5],[7.48,9.7],[6.74,8.5],[6.55,8.0],[6.15,8.0],[5.68,7.0],[5.07,6.5],[5.06,6.5],[5.08,6.5],[5.55,7.0],[5.62,7.48],[6.62,8.5],[10.34,11.5],[7.93,10.0],[8.68,11.0]],"ratio":{"q25":0.608,"q75":1.243,"median":0.913},"period":"2021-01〜2026-09","bars":373228};
+     直近250営業日の5分足から作る。値幅予測モデルの特徴量と、「いまの値幅」パネルが共用する。
+     ratio は「普段との比」の、静か/荒いの境界(下位25%/上位25%)と中央値。
+     更新は3か月ごと(1・4・7・10月の初め)。lv_builder.html で lv_base.json を作り、index.html と同じフォルダに置くと、
+     こちらより新しい場合に、自動で使われる。 */
+  var LV_BASE = {"summer":[[5.19,6.16],[4.49,5.76],[4.05,5.06],[3.54,4.39],[3.71,4.55],[3.94,3.81],[3.73,4.43],[3.69,4.37],[3.65,4.26],[3.53,4.13],[3.23,3.48],[2.7,2.96],[4.34,5.38],[2.8,3.33],[3.82,4.4],[2.79,2.95],[3.19,3.83],[3.37,4.15],[5.12,6.3],[5.58,6.59],[4.89,5.9],[4.13,5.14],[3.69,4.38],[3.33,4.03],[3.1,3.69],[3.33,3.7],[3.07,3.47],[3.65,3.92],[3.38,3.89],[3.46,4.1],[4.46,5.44],[4.95,5.36],[5.2,6.18],[4.95,5.65],[5.02,5.78],[4.61,5.09],[4.38,4.78],[3.82,4.55],[3.67,4.27],[3.92,4.27],[3.83,4.45],[4.15,4.73],[4.32,5.37],[6.23,6.59],[5.41,6.0],[6.28,6.72],[6.11,6.69],[5.66,7.03]],"winter":[[7.6,9.67],[7.55,9.43],[6.19,7.57],[5.22,6.3],[5.27,6.4],[4.78,5.8],[4.32,5.14],[3.97,5.04],[4.04,4.83],[4.23,4.98],[3.78,4.76],[3.75,4.4],[3.74,4.33],[3.37,4.01],[4.57,5.72],[2.91,3.29],[4.5,5.51],[4.86,6.12],[7.24,8.79],[6.67,8.57],[6.65,8.54],[5.78,7.23],[5.53,6.88],[4.96,6.04],[4.69,5.95],[4.37,5.54],[4.44,5.42],[4.09,5.33],[4.37,5.5],[4.6,5.9],[5.44,6.57],[5.22,6.7],[5.61,7.15],[6.4,7.38],[6.53,8.01],[5.58,6.92],[5.64,7.14],[5.43,6.28],[4.65,5.62],[4.23,5.33],[4.11,5.12],[3.9,4.83],[4.54,5.7],[4.7,5.89],[5.43,6.86],[8.27,9.16],[6.68,8.52],[6.96,8.81]],"ratio":{"q25":0.641,"q75":1.151,"median":0.842},"period":"2025-11-19〜2026-09-15","bars":54192,"days":250,"built":"2026-09-20","asof":"2026-09-15","ver":0};
   window.USDJPY_LV = LV_BASE;
+  var LV_REBUILD_HOWTO = '更新: lv_builder.html を開いて表を作り、できた lv_base.json を index.html と同じフォルダに入れて、Netlify Dropに置き直してください。';
 
   var state = {
     price: null, prevClose: null, sessionOpen: null,
@@ -1867,6 +1871,15 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       warnings.push({ level: 'soon', text: '米CPI日程の残りが' + futureCpiCount + '件です。' });
     }
 
+    /* 「普段」の値幅表の鮮度(3か月ごとに作り直す。検証で、直近250営業日・四半期ごとを採用) */
+    var lvBuilt = LV_BASE.built ? Date.parse(LV_BASE.built + 'T00:00:00Z') : NaN;
+    var nd = new Date(now), qStart = Date.UTC(nd.getUTCFullYear(), Math.floor(nd.getUTCMonth() / 3) * 3, 1);
+    if (!isFinite(lvBuilt) || (now - lvBuilt) / 86400000 > 150) {
+      warnings.push({ level: 'urgent', text: '「普段」の値幅表が古すぎます(' + (LV_BASE.built || '作成日不明') + '作成)。' + LV_REBUILD_HOWTO });
+    } else if (lvBuilt < qStart) {
+      warnings.push({ level: 'soon', text: '「普段」の値幅表(' + LV_BASE.built + '作成)が、四半期の更新日(' + (new Date(qStart).getUTCMonth() + 1) + '/1)より前のものです。' + LV_REBUILD_HOWTO });
+    }
+
     state.dataFreshnessWarnings = warnings;
   }
 
@@ -2385,10 +2398,11 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
 
   /* その足の、時間帯ごとの「普段」の平均値幅(pips)。足に一度だけ計算して持たせる */
   function baseMeanAt(c) {
-    if (c.bz != null) return c.bz;
+    if (c.bz != null && c.bzv === LV_BASE.ver) return c.bz;
     var jp = jstOf(c.t), s = jp.h * 2 + (jp.min >= 30 ? 1 : 0);
     var summer = tzOffsetMs(c.t, CFG.TZ_NY) === -4 * 3600000;
     c.bz = (summer ? LV_BASE.summer : LV_BASE.winter)[s][0];
+    c.bzv = LV_BASE.ver;                                  /* 表を差し替えたら、持たせた値を作り直す */
     return c.bz;
   }
 
@@ -3234,6 +3248,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       if (rows.length < CFG.VOL_MIN_LOOKBACK + CFG.VOL_HORIZON_BARS) return;
       noteApiSuccess();
       state.candles5mLong = rows;
+      window.USDJPY_BARS_LONG = rows;                                   /* 「いまの値幅」パネルが、直近の水準の確認に使う */
       fitVolModel(closedCandles(rows, INTERVAL_MS['5min']));
       recomputeAndRenderAll();
     }).catch(function (err) {
@@ -3816,6 +3831,34 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     });
   }
 
+  /* ---------------- 「普段」の表の上書き(lv_base.json) ---------------- */
+  function validLv(o) {
+    function tab(a) { return Array.isArray(a) && a.length === 48 && a.every(function (r) { return Array.isArray(r) && r.length === 2 && isFinite(r[0]) && isFinite(r[1]) && r[0] > 0 && r[1] > 0; }); }
+    return !!o && tab(o.summer) && tab(o.winter) && !!o.ratio && isFinite(o.ratio.q25) && isFinite(o.ratio.q75) && o.ratio.q25 < o.ratio.q75 && typeof o.built === 'string';
+  }
+  function applyLvOverride(o) {
+    LV_BASE.summer = o.summer; LV_BASE.winter = o.winter; LV_BASE.ratio = o.ratio;
+    ['period', 'bars', 'days', 'built', 'asof'].forEach(function (k) { LV_BASE[k] = o[k]; });
+    LV_BASE.ver = (LV_BASE.ver || 0) + 1;
+    document.dispatchEvent(new CustomEvent('usdjpy:lv'));
+  }
+  /* index.html と同じ場所に lv_base.json があり、埋め込みの表より新しい(または同じ日付)なら、それを使う。
+     起動を遅らせすぎないよう、待つのは最大2.5秒。間に合わなかった場合は、届いた時点で差し替えて、モデルを学び直す。 */
+  function loadLvOverride(done) {
+    var finished = false, late = false;
+    function fin() { if (!finished) { finished = true; done(); } }
+    setTimeout(function () { late = true; fin(); }, 2500);
+    try {
+      fetch('lv_base.json?ts=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (o) {
+        if (validLv(o) && String(o.built) >= String(LV_BASE.built || '')) {
+          applyLvOverride(o);
+          if (late) { computeDataFreshness(); renderDataFreshnessBanner(); pollVolHistory(true); }
+        }
+        fin();
+      }).catch(fin);
+    } catch (e) { fin(); }
+  }
+
   /* ---------------- Boot ---------------- */
   function boot() {
     budget.load();
@@ -3880,7 +3923,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     });
   }
 
-  boot();
+  loadLvOverride(boot);
 })();
 </script>
 
@@ -3961,6 +4004,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
 
   function render() {
     var now = Date.now();
+    renderTable();
     var c = compute(window.USDJPY_BARS);
     if (!c) { clearNumbers(); $('lv-asof').textContent = '価格データ待ち'; $('lv-status').textContent = '価格データの取得を待っています。'; return; }
 
@@ -4009,13 +4053,33 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     adv.hidden = false;
   }
 
-  $('lv-note').textContent = '「普段」は' + LV.period + 'の5分足(' + LV.bars.toLocaleString('ja-JP') + '本)から集計した、同じ時間帯(日本時間30分枠・夏冬別)の平均値幅です。' +
-    '静かと荒いの境界は、同じ期間の全ての1時間窓で測った「普段との比」の下位25%(' + LV.ratio.q25.toFixed(2) + '倍)と上位25%(' + LV.ratio.q75.toFixed(2) + '倍)です。' +
-    '平均は大きな値動きの日に引っ張られるため、普通の時間帯の比は1倍よりやや低め(中央値' + LV.ratio.median.toFixed(2) + '倍)になります。' +
-    '1本だけ極端に大きい足があると、平均がその1本に引っ張られます。その場合は「最新1本」の欄と棒グラフを確認してください。' +
-    '損切りの目安は、直近1時間の平均値幅の2〜3倍です。表の確率は過去の実測で、利益を保証するものではありません。指標発表の直後は、この数字を超えて動くことがあります。';
+  function baseAt(ms) { var tb = isSummer(ms) ? LV.summer : LV.winter; return tb[jstSlot(ms)][0]; }
+  /* 表の情報と、直近の値幅が表に対してどの水準か(表が古くなっていないかの目安) */
+  function renderTable() {
+    var t = '「普段」の表: ' + LV.period + 'の' + LV.days + '営業日(' + LV.bars.toLocaleString('ja-JP') + '本)から作成、' + LV.built + '更新。';
+    var bars = (window.USDJPY_BARS_LONG && window.USDJPY_BARS_LONG.length >= 300) ? window.USDJPY_BARS_LONG : window.USDJPY_BARS;
+    if (bars && bars.length >= 100) {
+      var s = 0, b = 0, cnt = 0, lim = Date.now() - 3000;
+      for (var i = Math.max(0, bars.length - 2900); i < bars.length; i++) {
+        if (bars[i].t + BAR_MIN * 60000 > lim) continue;
+        s += (bars[i].h - bars[i].l) / PIP; b += baseAt(bars[i].t); cnt++;
+      }
+      if (cnt >= 200) {
+        var L = s / b;
+        t += ' 直近約' + Math.max(1, Math.round(cnt / 288)) + '営業日の平均値幅は、表の' + L.toFixed(2) + '倍です。' +
+          (L > 1.2 ? '表を作った期間より荒い時期のため、「荒い」の判定が多く出ます。' : L < 0.83 ? '表を作った期間より静かな時期のため、「静か」の判定が多く出ます。' : '');
+      }
+    }
+    $('lv-table').textContent = t;
+    $('lv-note').textContent = '静かと荒いの境界は、表を作った期間の全ての1時間窓で測った「普段との比」の下位25%(' + LV.ratio.q25.toFixed(2) + '倍)と上位25%(' + LV.ratio.q75.toFixed(2) + '倍)です。' +
+      '平均は大きな値動きの日に引っ張られるため、普通の時間帯の比は1倍よりやや低め(中央値' + LV.ratio.median.toFixed(2) + '倍)になります。' +
+      '値幅の水準は年ごとに変わるため、表を作ってから時間がたつと、判定が偏ります(3か月ごとの更新が目安)。' +
+      '1本だけ極端に大きい足があると、平均がその1本に引っ張られます。その場合は「最新1本」の欄と棒グラフを確認してください。' +
+      '損切りの目安は、直近1時間の平均値幅の2〜3倍です。表の確率は過去の実測で、利益を保証するものではありません。指標発表の直後は、この数字を超えて動くことがあります。';
+  }
 
   document.addEventListener('usdjpy:bars', render);
+  document.addEventListener('usdjpy:lv', render);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) render(); });
   setInterval(render, 30000);
   render();
