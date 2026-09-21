@@ -647,6 +647,41 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
 .lv-legend i { display: inline-block; vertical-align: middle; margin-right: 4px; }
 .lv-legend i.a { width: 12px; height: 9px; border-radius: 2px; background: color-mix(in srgb, var(--color-accent) 60%, transparent); }
 .lv-legend i.b { width: 12px; height: 2px; background: var(--color-text); opacity: .8; }
+
+/* ============ サポート/レジスタンス (sr-) ============ */
+.sr-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); }
+.sr-card { background: var(--color-surface-2); border: 1px solid var(--color-divider); border-radius: var(--radius-md); padding: var(--space-3); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sr-card .k { font-size: var(--text-xs); color: var(--color-text-muted); }
+.sr-card .v { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.sr-card .s { font-size: var(--text-xs); color: var(--color-text-muted); }
+.sr-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.sr-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--color-divider); border-radius: var(--radius-md); background: var(--color-surface-2); }
+.sr-row.here { border-color: var(--color-primary); background: var(--color-primary-highlight); }
+.sr-row.man { border-left: 3px solid var(--color-accent); }
+.sr-grade { width: 26px; height: 26px; border-radius: var(--radius-full); display: grid; place-items: center; font-size: var(--text-xs); font-weight: 700; }
+.sr-grade.A { background: var(--color-primary-highlight); color: var(--color-primary); border: 1px solid var(--color-primary); }
+.sr-grade.B { background: var(--color-accent-highlight); color: var(--color-accent); border: 1px solid var(--color-accent); }
+.sr-grade.C { background: transparent; color: var(--color-text-faint); border: 1px solid var(--color-border); }
+.sr-main { min-width: 0; }
+.sr-price { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; }
+.sr-dist { font-size: var(--text-xs); color: var(--color-text-muted); margin-left: var(--space-2); }
+.sr-tags { font-size: var(--text-xs); color: var(--color-text-muted); overflow-wrap: anywhere; }
+.sr-meta { font-size: var(--text-xs); color: var(--color-text-faint); }
+.sr-side { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.sr-state { font-size: var(--text-xs); font-weight: 600; padding: 2px 8px; border-radius: var(--radius-full); border: 1px solid var(--color-border); color: var(--color-text-muted); white-space: nowrap; }
+.sr-state.rejected { color: var(--color-success); border-color: var(--color-success); background: var(--color-success-highlight); }
+.sr-state.broken { color: var(--color-error); border-color: var(--color-error); background: var(--color-error-highlight); }
+.sr-state.fake { color: var(--color-warning); border-color: var(--color-warning); background: var(--color-warning-highlight); }
+.sr-state.near { color: var(--color-primary); border-color: var(--color-primary); background: var(--color-primary-highlight); }
+.sr-form { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: var(--space-2); align-items: end; }
+.sr-form label { display: flex; flex-direction: column; gap: 2px; font-size: var(--text-xs); color: var(--color-text-muted); }
+.sr-form input { min-height: 40px; background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0 var(--space-3); font: inherit; font-size: 16px; }
+.sr-form button, .sr-del { min-height: 40px; padding: 0 var(--space-4); border-radius: var(--radius-sm); border: 1px solid var(--color-accent); background: var(--color-accent); color: #1a1207; font: inherit; font-weight: 600; cursor: pointer; }
+.sr-del { min-height: 30px; padding: 0 var(--space-3); background: transparent; color: var(--color-text-muted); border-color: var(--color-border); font-weight: 500; font-size: var(--text-xs); }
+.sr-form :focus-visible, .sr-del:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.sr-msg { font-size: var(--text-xs); color: var(--color-error); min-height: 1.2em; }
+.sr-empty { padding: var(--space-4); text-align: center; color: var(--color-text-muted); font-size: var(--text-sm); border: 1px dashed var(--color-border); border-radius: var(--radius-md); }
+@media (max-width: 560px) { .sr-form { grid-template-columns: 1fr; } .sr-row { grid-template-columns: auto 1fr; } .sr-row .sr-side { grid-column: 2; align-items: flex-start; } }
 </style>
 </head>
 <body>
@@ -768,11 +803,29 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     <div class="panel">
       <div class="panel-head">
         <span class="panel-title">価格 &amp; 出来高 (5分足・デイトレード)</span>
-        <span class="panel-note" id="price-chart-note">EMA20 / EMA50 / VWAP / ピボットP / アジア高安</span>
+        <span class="panel-note" id="price-chart-note">EMA20 / EMA50 / VWAP / ピボットP / アジア高安 / サポレジ帯</span>
       </div>
       <div class="chart-wrap"><canvas id="chart-price"></canvas></div>
     </div>
 
+  </section>
+
+  <!-- ============ サポート/レジスタンス ============ -->
+  <section class="panel" id="sr-panel" aria-labelledby="sr-title">
+    <div class="panel-head">
+      <span class="panel-title" id="sr-title">サポート/レジスタンス(自動検出)</span>
+      <span class="panel-note" id="sr-note">価格データ待ち</span>
+    </div>
+    <p class="strategy-note" id="sr-caveat">水準の「強さ」と、いまの価格の「反応の状態」を表示します。売買の方向は予測しません。反応の記録を蓄積し、有効性を検証してから、確率の表示に進みます。</p>
+    <div class="sr-summary" id="sr-summary" aria-live="polite"></div>
+    <div class="sr-list" id="sr-list"></div>
+    <form class="sr-form" id="sr-form" autocomplete="off">
+      <label>手入力する価格(円)<input id="sr-in-price" inputmode="decimal" placeholder="例 155.30" aria-describedby="sr-msg"></label>
+      <label>メモ(任意)<input id="sr-in-note" maxlength="40" placeholder="例 先週の高値"></label>
+      <button type="submit">追加</button>
+    </form>
+    <div class="sr-msg" id="sr-msg" role="status"></div>
+    <p class="strategy-note">手入力した水準は、自動検出の水準とは別に集計し、有効かどうかを後で比べられるようにします。追加した日時を記録します。</p>
   </section>
 
   <!-- ============ Momentum indicators ============ -->
@@ -3362,6 +3415,10 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     computeMarketCondition();
     computeHourProfile();
     renderHourProfile();
+    computeSR();               /* サポート/レジスタンス: チャートより先に計算する(ゾーンを描くため) */
+    srRecordTransitions();     /* 反応の状態が変わった瞬間だけを記録(先読みなし) */
+    srResolveOutcomes();       /* 3時間たった記録の結果を、確定足で埋める */
+    renderSR();
     renderPriceChart();
     renderMomentumChart();
     renderHtfKpi();
@@ -3860,7 +3917,629 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
   }
 
   /* ---------------- Boot ---------------- */
+  /* ============================================================
+     SR_CORE: サポート/レジスタンス検出の純関数(単体テスト済み)
+     ============================================================ */
+  /* ============================================================
+     サポート/レジスタンス(S/R)の自動検出 — 純関数コア
+     ------------------------------------------------------------
+     設計原則
+     ・すべて確定足だけで計算する(形成中の足は使わない=リペイントしない)
+     ・閾値はpips固定ではなくATR倍数で持つ(ボラの大小に追随する)
+     ・水準は「線」ではなく「ゾーン」(幅=ZONE_ATR×ATR)
+     ・強さは、種類・重なり・タッチ・反応の質・鮮度から決める
+     ・「方向の予測」はしない。反応の分類と記録までが、この段階の責務
+     ============================================================ */
+  var SR_CORE = (function () {
+    'use strict';
+  
+    var P = {
+      PIP: 0.01,
+      ZONE_ATR: 0.25,          // ゾーンの半幅 = 0.25×ATR(1時間足ATR14)
+      MERGE_ATR: 0.35,         // この距離以内の候補は、同じゾーンに統合する
+      FRACTAL_N: 3,            // 左右3本より高い/低い1時間足の高安=スイング
+      SWING_DAYS: 10,          // スイングの探索範囲(営業日)
+      TOUCH_ATR: 0.15,         // ゾーンの端からこの距離まで入れば「触れた」
+      REACT_ATR: 1.0,          // 触れた後、この幅だけ逆行したら「効いた」
+      REACT_BARS: 12,          // 反応を測る足数(5分足12本=1時間)
+      TOUCH_GAP_BARS: 12,      // 同じ接触とみなす間隔(5分足)
+      NEAR_ATR: 0.6,           // ゾーンの端からこの距離以内なら「接近中」
+      BREAK_ATR: 0.10,         // 1時間足の終値がゾーン外へこの幅だけ抜けたら「外にいる」とみなす
+      REJECT_ATR: 0.50,        // 反発とみなす戻り幅: ゾーンの端から、来た側へこの幅以上離れた終値
+      REJECT_BARS: 24,         // 反発を探す範囲(5分足24本=2時間。これより古い接触は反発とみなさない)
+      OPP_ATR: 0.20,           // 「反対側にいた」とみなす距離: 終値がゾーンの端からこの幅以上離れていること(縁を越えただけのノイズを除く)
+      SHOW_GAP_ATR: 0.40,      // 表示するゾーン同士の最小間隔(これ未満は、強い方だけ残す)
+      FAKE_BARS: 6,            // 抜けた後、この足数(1時間足)以内に戻れば偽ブレイク
+      DECAY_DAYS: 7,           // 鮮度の半減期(営業日ではなく暦日)
+      ROUND_STEPS: [1.0, 0.5, 0.25],
+      MIN_ATR_PIPS: 3          // ATRがこれ未満なら、検出しない(データ異常の保護)
+    };
+  
+    /* 種類ごとの基礎点(合計を強度に変換する前の素点) */
+    var KIND = {
+      swing:   { w: 2.0, label: 'スイング' },
+      prevH:   { w: 2.0, label: '前日高値' },
+      prevL:   { w: 2.0, label: '前日安値' },
+      prevC:   { w: 1.5, label: '前日終値' },
+      pivR1:   { w: 1.0, label: 'ピボットR1' },
+      pivS1:   { w: 1.0, label: 'ピボットS1' },
+      asiaH:   { w: 1.0, label: '東京高値' },
+      asiaL:   { w: 1.0, label: '東京安値' },
+      round1:  { w: 2.5, label: '節目1.00' },
+      round50: { w: 1.5, label: '節目0.50' },
+      round25: { w: 0.5, label: '節目0.25' },
+      manual:  { w: 2.5, label: '手入力' }
+    };
+  
+    /* ---------- 基本ユーティリティ ---------- */
+    function atrOf(c1h, period) {
+      var n = c1h.length, tr = new Array(n), out = new Array(n).fill(null), i;
+      for (i = 0; i < n; i++) {
+        tr[i] = i === 0 ? c1h[i].h - c1h[i].l
+          : Math.max(c1h[i].h - c1h[i].l, Math.abs(c1h[i].h - c1h[i - 1].c), Math.abs(c1h[i].l - c1h[i - 1].c));
+      }
+      if (n <= period) return out;
+      var s = 0; for (i = 1; i <= period; i++) s += tr[i];
+      out[period] = s / period;
+      for (i = period + 1; i < n; i++) out[i] = (out[i - 1] * (period - 1) + tr[i]) / period;
+      return out;
+    }
+  
+    /* フラクタル・スイング: 左右N本より高い(低い)確定足の高値(安値)。
+       右側N本が確定するまで確認できないため、直近N本は含めない(=先読みしない) */
+    function findSwings(c1h, n, sinceMs) {
+      var out = [];
+      for (var i = n; i < c1h.length - n; i++) {
+        if (c1h[i].t < sinceMs) continue;
+        var hi = true, lo = true;
+        for (var k = 1; k <= n; k++) {
+          if (c1h[i].h <= c1h[i - k].h || c1h[i].h <= c1h[i + k].h) hi = false;
+          if (c1h[i].l >= c1h[i - k].l || c1h[i].l >= c1h[i + k].l) lo = false;
+          if (!hi && !lo) break;
+        }
+        if (hi) out.push({ v: c1h[i].h, t: c1h[i].t, kind: 'swing', side: 'H' });
+        if (lo) out.push({ v: c1h[i].l, t: c1h[i].t, kind: 'swing', side: 'L' });
+      }
+      return out;
+    }
+  
+    function roundLevels(lo, hi) {
+      var out = [];
+      P.ROUND_STEPS.forEach(function (st) {
+        var kind = st === 1.0 ? 'round1' : (st === 0.5 ? 'round50' : 'round25');
+        var v = Math.ceil(lo / st - 1e-9) * st;
+        for (; v <= hi + 1e-9; v += st) {
+          var r = Math.round(v * 100) / 100;
+          /* 1.00の倍数は0.50・0.25にも該当するので、最上位の種類だけ残す */
+          if (st === 0.5 && Math.abs(r - Math.round(r)) < 1e-9) continue;
+          if (st === 0.25 && Math.abs(r * 2 - Math.round(r * 2)) < 1e-9) continue;
+          out.push({ v: r, t: null, kind: kind, side: '-' });
+        }
+      });
+      return out;
+    }
+  
+    /* ---------- 候補の収集 ---------- */
+    /* input: { c1h, dailyPrev:{h,l,c}|null, pivot:{r1,s1}|null, asia:{h,l}|null, manual:[{v,note,createdAt}], price, atr } */
+    function collectCandidates(input) {
+      var c1h = input.c1h, cands = [], atr = input.atr, price = input.price;
+      var since = c1h.length ? c1h[c1h.length - 1].t - P.SWING_DAYS * 86400000 : 0;
+      findSwings(c1h, P.FRACTAL_N, since).forEach(function (s) { cands.push(s); });
+      var dp = input.dailyPrev;
+      if (dp) {
+        cands.push({ v: dp.h, t: dp.t || null, kind: 'prevH', side: 'H' });
+        cands.push({ v: dp.l, t: dp.t || null, kind: 'prevL', side: 'L' });
+        cands.push({ v: dp.c, t: dp.t || null, kind: 'prevC', side: '-' });
+      }
+      if (input.pivot) {
+        cands.push({ v: input.pivot.r1, t: null, kind: 'pivR1', side: 'H' });
+        cands.push({ v: input.pivot.s1, t: null, kind: 'pivS1', side: 'L' });
+      }
+      if (input.asia) {
+        cands.push({ v: input.asia.h, t: null, kind: 'asiaH', side: 'H' });
+        cands.push({ v: input.asia.l, t: null, kind: 'asiaL', side: 'L' });
+      }
+      /* ラウンドは、現在値の上下 6×ATR と、少なくとも±1円の範囲 */
+      var span = Math.max(6 * atr, 1.0);
+      roundLevels(price - span, price + span).forEach(function (r) { cands.push(r); });
+      (input.manual || []).forEach(function (m) {
+        if (m && isFinite(m.v)) cands.push({ v: +m.v, t: m.createdAt || null, kind: 'manual', side: '-', note: m.note || '', id: m.id });
+      });
+      return cands.filter(function (c) { return c.v != null && isFinite(c.v); });
+    }
+  
+    /* ---------- クラスタ統合(コンフルエンス) ---------- */
+    function cluster(cands, atr) {
+      /* 手入力は、利用者が決めた値そのものなので、自動の統合には混ぜない(値がずれるのを防ぐ)。
+         重なりの評価は、後段(scoreZone)で「近くに自動検出の水準があるか」として別に見る。 */
+      var manual = cands.filter(function (c) { return c.kind === 'manual'; });
+      var auto = cands.filter(function (c) { return c.kind !== 'manual'; });
+      var sorted = auto.sort(function (a, b) { return a.v - b.v; });
+      /* グループの幅に上限を設ける: 連鎖(A-B, B-C が近ければ A-C まで繋がる)で、ゾーンが膨らむのを防ぐ。
+         先頭(最も低い値)から MERGE_ATR×ATR を超えたら、新しいグループを始める。 */
+      var groups = [], cur = null, mergeD = P.MERGE_ATR * atr;
+      sorted.forEach(function (c) {
+        if (cur && c.v - cur.first <= mergeD) { cur.items.push(c); }
+        else { cur = { items: [c], first: c.v }; groups.push(cur); }
+      });
+      manual.forEach(function (m) { groups.push({ items: [m], first: m.v, isManual: true }); });
+      groups.sort(function (a, b) { return a.first - b.first; });
+      return groups.map(function (g) {
+        /* ゾーン中心は、素点で重み付けした平均。手入力・節目が含まれれば、そちらへ寄せる(ぴったりの値を尊重) */
+        var sw = 0, sv = 0;
+        g.items.forEach(function (it) { var w = KIND[it.kind].w; sw += w; sv += w * it.v; });
+        var center = sv / sw;
+        var anchors = g.items.filter(function (it) { return it.kind === 'manual' || it.kind === 'round1' || it.kind === 'round50'; });
+        if (anchors.length === 1) center = anchors[0].v;
+        var kinds = {}; g.items.forEach(function (it) { kinds[it.kind] = (kinds[it.kind] || 0) + 1; });
+        return { center: center, items: g.items, kinds: kinds };
+      });
+    }
+  
+    /* ---------- タッチ・反応の測定(確定した5分足だけを使う) ----------
+       ゾーン [lo,hi] について、各接触を「上から(=サポート)」「下から(=レジスタンス)」に分類する。
+       接触後 REACT_BARS 本の間に、ゾーンから REACT_ATR×ATR だけ離れる方向が「反発」。
+       ゾーンを逆側へ突き抜けて終値が定着した場合は「突破」。 */
+    function measureTouches(c5, lo, hi, atr, sinceMs) {
+      var touchD = P.TOUCH_ATR * atr, reactD = P.REACT_ATR * atr, i = 0, res = { touches: 0, reacted: 0, broke: 0, last: null };
+      var lastTouchIdx = -1e9;
+      for (i = 0; i < c5.length; i++) {
+        if (sinceMs && c5[i].t < sinceMs) continue;
+        var b = c5[i];
+        var fromAbove = b.l <= hi + touchD && b.l >= lo - touchD && (i === 0 || c5[i - 1].c > hi);
+        var fromBelow = b.h >= lo - touchD && b.h <= hi + touchD && (i === 0 || c5[i - 1].c < lo);
+        if (!fromAbove && !fromBelow) continue;
+        if (i - lastTouchIdx < P.TOUCH_GAP_BARS) continue;      // 連続する足は1回の接触
+        lastTouchIdx = i;
+        var end = Math.min(c5.length - 1, i + P.REACT_BARS);
+        if (i + P.REACT_BARS > c5.length - 1) continue;         // 結果がまだ出ていない接触は数えない(先読み防止)
+        var mx = -Infinity, mn = Infinity, closeEnd = c5[end].c;
+        for (var k = i + 1; k <= end; k++) { if (c5[k].h > mx) mx = c5[k].h; if (c5[k].l < mn) mn = c5[k].l; }
+        res.touches++;
+        if (fromAbove) {                                         // サポートとして機能したか
+          if (mx - hi >= reactD && closeEnd >= lo) res.reacted++;
+          else if (closeEnd < lo - touchD) res.broke++;
+        } else {                                                 // レジスタンスとして機能したか
+          if (lo - mn >= reactD && closeEnd <= hi) res.reacted++;
+          else if (closeEnd > hi + touchD) res.broke++;
+        }
+        res.last = c5[i].t;
+      }
+      return res;
+    }
+  
+    /* ---------- 強度スコア ----------
+       素点(種類の合計)+重なりの多様性+反応実績 に、鮮度の減衰をかける。0〜100に写像する。 */
+    function scoreZone(g, tm, nowMs) {
+      var base = 0, distinct = Object.keys(g.kinds).length;
+      g.items.forEach(function (it) { base += KIND[it.kind].w; });
+      var confl = Math.max(0, distinct - 1) * 1.0;                       // 別種類の重なりだけ加点
+      var reactRate = tm.touches >= 2 ? tm.reacted / tm.touches : null;  // 2回未満は、反応率を評価に使わない
+      var react = 0;
+      if (tm.touches >= 2) react = (reactRate - 0.4) * Math.min(tm.touches, 6) * 0.9;   // 効いた回数が多く、率が高いほど加点(低ければ減点)
+      var raw = base + confl + react;
+      /* 鮮度: 新しい item ほど強い。時刻の不明な item(節目・ピボット等)は常に有効として扱う */
+      var newest = null;
+      g.items.forEach(function (it) { if (it.t != null && (newest == null || it.t > newest)) newest = it.t; });
+      var hasTimeless = g.items.some(function (it) { return it.t == null; });
+      var fresh = 1;
+      if (!hasTimeless && newest != null) fresh = Math.pow(0.5, (nowMs - newest) / (P.DECAY_DAYS * 86400000));
+      fresh = Math.max(0.35, fresh);
+      var score = Math.max(0, raw) * fresh;
+      return { raw: raw, score: score, fresh: fresh, base: base, confl: confl, react: react, reactRate: reactRate };
+    }
+  
+    function gradeOf(score) { return score >= 6 ? 'A' : (score >= 3.5 ? 'B' : 'C'); }
+  
+    /* ---------- 反応の分類(確定足のみ) ----------
+       'far' 遠い / 'near' 接近中 / 'rejected' 反発 / 'broken' ブレイク確定 / 'fake' 偽ブレイク(ゾーン内へ復帰)
+       1時間足の確定足で「抜け」を、5分足の確定足で「反発」を見る。 */
+    function classify(zone, c1h, c5, atr) {
+      var lo = zone.lo, hi = zone.hi, nearD = P.NEAR_ATR * atr, brk = P.BREAK_ATR * atr;
+      if (!c5.length || !c1h.length) return { state: 'far', side: null };
+      var p = c5[c5.length - 1].c;
+      var above = p > hi, below = p < lo, inside = !above && !below;
+      var dist = above ? p - hi : (below ? lo - p : 0);
+      /* 「ブレイク」は、反対側にいた状態から抜けたことを指す。ずっと片側にいるだけ(=遠い)は、ブレイクではない。
+         直近 FAKE_BARS+1 本の1時間足を、ゾーンに対する位置(上/中/下)に分けて、遷移を見る。
+         位置は、終値がゾーン外へ BREAK_ATR×ATR 以上出ているかで決める(境界のノイズを避ける)。 */
+      var recent = c1h.slice(-(P.FAKE_BARS + 1)), pos = [], i, oppD = P.OPP_ATR * atr;
+      /* 各1時間足の終値を、ゾーンに対する位置に分ける。
+         ±2 = ゾーンの端から OPP_ATR×ATR 以上離れている(=確かに「その側にいた」)
+         ±1 = ゾーンの外だが縁に近い(BREAK_ATR 以上)  0 = ゾーン内、または縁の際 */
+      for (i = 0; i < recent.length; i++) {
+        var cc = recent[i].c;
+        pos.push(cc > hi + oppD ? 2 : (cc > hi + brk ? 1 : (cc < lo - oppD ? -2 : (cc < lo - brk ? -1 : 0))));
+      }
+      var last = pos[pos.length - 1];
+      var wasBelow = pos.some(function (v) { return v === -2; });      // 確かに下側にいた
+      var wasAbove = pos.some(function (v) { return v === 2; });       // 確かに上側にいた
+      /* ブレイク確定 = 反対側に確かにいて、いまはこちら側の外(ゾーンの端から brk 以上)にいる。
+         縁を越えただけ(±1)は、反対側にいた根拠にしない。 */
+      if (above && last >= 1 && wasBelow) return { state: 'broken', side: 'up', dist: dist };       // 下から上へ通り抜けた
+      if (below && last <= -1 && wasAbove) return { state: 'broken', side: 'down', dist: dist };    // 上から下へ通り抜けた
+      /* 偽ブレイク = ゾーンの外に確かにいた(反対側でも同じ側でも)あと、いまはゾーン内へ戻っている。
+         ただし、ずっと同じ側にいてゾーンに入っただけは、接近であって偽ブレイクではない。
+         抜けて(=ゾーンの反対側の外へ出て)から戻った場合のみが偽ブレイク。 */
+      if (inside && last === 0 && wasBelow && wasAbove) return { state: 'fake', side: pos.lastIndexOf(2) > pos.lastIndexOf(-2) ? 'up' : 'down', dist: 0 };
+      /* 反発 = 「一方の側から来て、ゾーンに触れ、来た側へ意味のある幅だけ戻った」。
+         ・触れた = 5分足の高値/安値が、ゾーンの端から TOUCH_ATR×ATR 以内に達した
+         ・来た側 = 触れる直前の終値が、ゾーンのどちら側にあったか
+         ・戻った = 触れた足より後の終値が、ゾーンの端から REJECT_ATR×ATR 以上、来た側へ離れた
+         ゾーンを通り抜けて反対側へ出た場合(=通過)は、反発ではない。
+         過去 REJECT_BARS 本だけを見る(古い接触を、いつまでも反発とみなさないため)。 */
+      var rj = c5.slice(-P.REJECT_BARS), touchD = P.TOUCH_ATR * atr, rejD = P.REJECT_ATR * atr, rejected = null;
+      for (var a = 0; a < rj.length && !rejected; a++) {
+        var bar = rj[a];
+        var before = a > 0 ? rj[a - 1].c : null;
+        if (before == null) continue;
+        /* 下から来てゾーンの下端側(レジスタンス)に触れた */
+        if (before < lo && bar.h >= lo - touchD) {
+          var okBack = false, passed = false;
+          for (var b2 = a; b2 < rj.length; b2++) {
+            if (rj[b2].c > hi + brk) { passed = true; break; }                       // ゾーンを通り抜けて上へ出た=通過(反発ではない)
+            if (rj[b2].c <= lo - rejD) okBack = true;                                 // 来た側(下)へ、十分に戻った
+          }
+          if (okBack && !passed && p < lo) rejected = { state: 'rejected', side: 'down', dist: dist };
+        }
+        /* 上から来てゾーンの上端側(サポート)に触れた */
+        if (!rejected && before > hi && bar.l <= hi + touchD) {
+          var okBack2 = false, passed2 = false;
+          for (var b3 = a; b3 < rj.length; b3++) {
+            if (rj[b3].c < lo - brk) { passed2 = true; break; }                      // ゾーンを通り抜けて下へ出た=通過
+            if (rj[b3].c >= hi + rejD) okBack2 = true;                                // 来た側(上)へ、十分に戻った
+          }
+          if (okBack2 && !passed2 && p > hi) rejected = { state: 'rejected', side: 'up', dist: dist };
+        }
+      }
+      if (rejected) return rejected;
+      if (dist <= nearD || inside) return { state: 'near', side: above ? 'above' : (below ? 'below' : 'inside'), dist: dist };
+      return { state: 'far', side: above ? 'above' : 'below', dist: dist };
+    }
+  
+    /* ---------- 表示の間引き ----------
+       ゾーンの幅より近い間隔で並ぶと、チャート上で区別できない。強度の高い順に採用し、既に採用した
+       ゾーンから SHOW_GAP_ATR×ATR 未満のものは落とす。手入力は利用者の意思なので、常に残す。 */
+    function thin(zs, atr) {
+      var gap = P.SHOW_GAP_ATR * atr, keep = [];
+      zs.slice().sort(function (a, b) { return (b.manual ? 1e9 : 0) + b.score - ((a.manual ? 1e9 : 0) + a.score); }).forEach(function (z) {
+        if (z.manual || keep.every(function (k) { return Math.abs(k.center - z.center) >= gap; })) keep.push(z);
+      });
+      return keep.sort(function (a, b) { return a.center - b.center; });
+    }
+  
+    /* ---------- メイン ----------
+       input: collectCandidates と同じ + c5(確定5分足) + nowMs
+       戻り値: { atrPips, zones:[...], nearestUp, nearestDown, params } */
+    function detect(input) {
+      var c1h = input.c1h, c5 = input.c5, nowMs = input.nowMs || Date.now();
+      var atrArr = atrOf(c1h, 14), atr = atrArr[atrArr.length - 1];
+      if (atr == null || atr / P.PIP < P.MIN_ATR_PIPS) return { ok: false, reason: 'ATRが算出できないため、水準を検出できません', zones: [] };
+      input.atr = atr;
+      var cands = collectCandidates(input);
+      var groups = cluster(cands, atr);
+      var sinceMs = nowMs - 20 * 86400000;
+      var zones = groups.map(function (g) {
+        var half = P.ZONE_ATR * atr;
+        var span = Math.max(0, g.items[g.items.length - 1].v - g.items[0].v);
+        var lo = g.center - half - (span > 0 ? span * 0.0 : 0), hi = g.center + half;
+        var z = { center: g.center, lo: lo, hi: hi, kinds: g.kinds, items: g.items };
+        var tm = measureTouches(c5, lo, hi, atr, sinceMs);
+        z.touch = tm;
+        var sc = scoreZone(g, tm, nowMs);
+        z.score = sc.score; z.scoreParts = sc; z.grade = gradeOf(sc.score);
+        z.cls = classify(z, c1h, c5, atr);
+        z.labels = Object.keys(g.kinds).map(function (k) { return KIND[k].label + (g.kinds[k] > 1 ? '×' + g.kinds[k] : ''); });
+        z.manual = g.items.some(function (i) { return i.kind === 'manual'; });
+        return z;
+      });
+      var price = input.price;
+      zones.forEach(function (z) { z.distPips = (z.center - price) / P.PIP; z.distAtr = (z.center - price) / atr; });
+      zones.sort(function (a, b) { return a.center - b.center; });
+      /* 価格がゾーンの中にいるなら、それは「いま居る水準」。直上・直下は、そのゾーンの外から選ぶ
+         (そうしないと、価格と同じ位置の水準が「直上」と表示される)。 */
+      var inZone = zones.filter(function (z) { return price >= z.lo && price <= z.hi && z.grade !== 'C'; })
+        .sort(function (a, b) { return b.score - a.score; })[0] || null;
+      var up = zones.filter(function (z) { return z.lo > price && z.grade !== 'C'; })[0] || null;
+      var dn = zones.filter(function (z) { return z.hi < price && z.grade !== 'C'; }).slice(-1)[0] || null;
+      /* 表示対象は、現在値から±6×ATR以内 かつ 強度がC以外(手入力は常に表示) */
+      var shown = zones.filter(function (z) { return Math.abs(z.distAtr) <= 6 && (z.grade !== 'C' || z.manual); });
+      shown = thin(shown, atr);
+      return { ok: true, atr: atr, atrPips: atr / P.PIP, zones: shown, all: zones, nearestUp: up, nearestDown: dn, inZone: inZone, params: P };
+    }
+  
+    return { detect: detect, atrOf: atrOf, findSwings: findSwings, roundLevels: roundLevels, cluster: cluster, measureTouches: measureTouches,
+      scoreZone: scoreZone, classify: classify, thin: thin, collectCandidates: collectCandidates, KIND: KIND, P: P, gradeOf: gradeOf };
+  })();
+
+  /* ============================================================
+     サポート/レジスタンス — 既存システムとの接続
+     ------------------------------------------------------------
+     検出ロジック本体(SR_CORE)は、ブラウザ外でも単体テストできる純関数。
+     ここでは ①既存のstateから入力を組み立て ②結果を保持 ③パネルとチャートに描画 ④手入力を保存する。
+     このモジュールは「方向」を出さない。反応の状態(接近中/反発/ブレイク/偽ブレイク)と強さを示すだけ。
+     ============================================================ */
+  var SR = { result: null, manual: [], lastKey: null, err: null };
+  var SR_LS_KEY = 'sr_manual_v1';
+  var SR_MAX_MANUAL = 20;
+
+  function srLoadManual() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(SR_LS_KEY) || '[]');
+      SR.manual = (Array.isArray(raw) ? raw : []).filter(function (m) {
+        return m && isFinite(m.v) && m.v > 50 && m.v < 400 && m.id;
+      }).slice(0, SR_MAX_MANUAL);
+    } catch (e) { SR.manual = []; }
+  }
+  function srSaveManual() {
+    try { localStorage.setItem(SR_LS_KEY, JSON.stringify(SR.manual)); } catch (e) {}
+  }
+
+  /* 利用者の入力を画面に出す前に、必ずエスケープする(メモは自由入力のため) */
+  function srEsc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+
+  function srInput() {
+    var c5 = state.candles5mClosed, c1h = state.candles1hClosed;
+    if (!c5.length || c1h.length < 30) return null;
+    var price = (state.price != null && !isNaN(state.price)) ? state.price : c5[c5.length - 1].c;
+    /* 前日 = 完了したFX日の最後。candlesD の最終要素は進行中の日なので除く */
+    var done = (state.candlesD || []).slice(0, -1).filter(function (d) { return d.n >= CFG.ADR_MIN_BARS_PER_DAY; });
+    var prev = done.length ? done[done.length - 1] : null;
+    var pv = state.pivot;
+    return {
+      c1h: c1h, c5: c5, price: price, nowMs: Date.now(),
+      dailyPrev: prev ? { h: prev.h, l: prev.l, c: prev.c, t: prev.t } : null,
+      pivot: pv ? { r1: pv.r1, s1: pv.s1 } : null,
+      asia: (state.asianHigh != null && state.asianLow != null) ? { h: state.asianHigh, l: state.asianLow } : null,
+      manual: SR.manual
+    };
+  }
+
+  function computeSR() {
+    var inp = srInput();
+    if (!inp) { SR.result = null; SR.err = null; return; }
+    /* 同じ確定足・同じ手入力なら、再計算しない(30秒ごとの再描画で無駄に走らせない) */
+    var key = inp.c5[inp.c5.length - 1].t + '|' + inp.c1h[inp.c1h.length - 1].t + '|' + SR.manual.length + '|' + (state.asianHigh || '') + '|' + Math.round(inp.price * 100);
+    if (key === SR.lastKey && SR.result) return;
+    try { SR.result = SR_CORE.detect(inp); SR.err = null; SR.lastKey = key; }
+    catch (e) { SR.result = null; SR.err = e && e.message ? e.message : String(e); console.warn('S/R検出に失敗:', e); }
+  }
+
+  /* ---------------- 描画: パネル ---------------- */
+  var SR_STATE_TXT = { far: '遠い', near: '接近中', rejected: '反発', broken: 'ブレイク', fake: '偽ブレイク' };
+  function srStateText(z) {
+    var s = z.cls.state, side = z.cls.side, t = SR_STATE_TXT[s] || '—';
+    if (s === 'rejected') return (side === 'up' ? 'サポートで反発' : 'レジスタンスで反発');
+    if (s === 'broken') return (side === 'up' ? '上抜け確定' : '下抜け確定');
+    if (s === 'fake') return (side === 'up' ? '上抜け失敗' : '下抜け失敗');
+    return t;
+  }
+  function srFmtPips(p) { return Math.abs(p) < 0.5 ? '現在値と同水準' : ('価格の' + Math.abs(p).toFixed(0) + 'pips' + (p > 0 ? '上' : '下')); }
+
+  function renderSR() {
+    var sumEl = document.getElementById('sr-summary'), listEl = document.getElementById('sr-list'), noteEl = document.getElementById('sr-note');
+    if (!sumEl || !listEl) return;
+    var r = SR.result;
+    if (!r) {
+      noteEl.textContent = SR.err ? '検出に失敗' : '価格データ待ち';
+      sumEl.innerHTML = ''; listEl.innerHTML = '<div class="sr-empty">' + (SR.err ? '水準の検出でエラーが出ました。再読み込みしてください。' : '1時間足・5分足の取得を待っています。') + '</div>';
+      return;
+    }
+    if (!r.ok) {
+      noteEl.textContent = '検出できません';
+      sumEl.innerHTML = ''; listEl.innerHTML = '<div class="sr-empty">' + srEsc(r.reason) + '</div>';
+      return;
+    }
+    noteEl.textContent = 'ゾーン幅 ±' + (r.params.ZONE_ATR * r.atrPips).toFixed(1) + 'pips(ATR ' + r.atrPips.toFixed(1) + 'pips × ' + r.params.ZONE_ATR + ')';
+    var up = r.nearestUp, dn = r.nearestDown, inz = r.inZone;
+    function card(k, z, cls) {
+      if (!z) return '<div class="sr-card"><span class="k">' + k + '</span><span class="v flat">—</span><span class="s">強い水準が範囲内にありません</span></div>';
+      return '<div class="sr-card"><span class="k">' + k + '</span><span class="v ' + cls + '">' + z.center.toFixed(3) + '</span><span class="s">' +
+        srFmtPips(z.distPips) + ' · 強さ' + z.grade + '</span></div>';
+    }
+    /* 「いまの状態」: ゾーン内にいれば、その水準を最優先。次に、反応(反発/ブレイク/偽ブレイク)が出ているもの、接近中のもの、の順 */
+    var pri = { rejected: 0, broken: 0, fake: 0, near: 1 };
+    var here = inz || r.zones.filter(function (z) { return pri[z.cls.state] != null && z.grade !== 'C'; })
+      .sort(function (a, b) { return (pri[a.cls.state] - pri[b.cls.state]) || (Math.abs(a.distPips) - Math.abs(b.distPips)); })[0] || null;
+    var hereTitle = inz ? '価格は、この水準のゾーン内' : 'いまの状態';
+    sumEl.innerHTML = card('直上の水準(レジスタンス側)', up, 'down') + card('直下の水準(サポート側)', dn, 'up') +
+      '<div class="sr-card"><span class="k">' + hereTitle + '</span><span class="v">' + (here ? srEsc(srStateText(here)) : '水準から離れている') + '</span><span class="s">' +
+      (here ? here.center.toFixed(3) + '(' + srFmtPips(here.distPips) + ' · 強さ' + here.grade + ')' : '接近・反応なし') + '</span></div>';
+
+    if (!r.zones.length) { listEl.innerHTML = '<div class="sr-empty">現在値の近くに、表示できる水準がありません。</div>'; return; }
+    var rows = r.zones.slice().sort(function (a, b) { return b.center - a.center; });     // 上から下へ
+    listEl.innerHTML = rows.map(function (z) {
+      var t = z.touch, touchTxt = t.touches ? ('直近20日で接触' + t.touches + '回・反応' + t.reacted + '回') : '直近20日の接触なし';
+      var manualTxt = z.manual ? (function () { var m = z.items.filter(function (i) { return i.kind === 'manual'; })[0]; return m && m.note ? ' · メモ: ' + srEsc(m.note) : ''; })() : '';
+      var isHere = z.cls.state !== 'far';
+      var del = '';
+      if (z.manual) { var mid = z.items.filter(function (i) { return i.kind === 'manual'; })[0].id; del = '<button type="button" class="sr-del" data-del="' + srEsc(mid) + '" aria-label="手入力の水準 ' + z.center.toFixed(3) + ' を削除">削除</button>'; }
+      return '<div class="sr-row' + (isHere ? ' here' : '') + (z.manual ? ' man' : '') + '">' +
+        '<span class="sr-grade ' + z.grade + '" title="強さ ' + z.score.toFixed(1) + '">' + z.grade + '</span>' +
+        '<div class="sr-main"><div><span class="sr-price">' + z.center.toFixed(3) + '</span><span class="sr-dist">' + srFmtPips(z.distPips) + '</span></div>' +
+        '<div class="sr-tags">' + srEsc(z.labels.join(' / ')) + manualTxt + '</div>' +
+        '<div class="sr-meta">' + srEsc(touchTxt) + ' · 強さ' + z.score.toFixed(1) + (z.fresh < 0.999 ? '(鮮度' + Math.round(z.fresh * 100) + '%)' : '') + '</div></div>' +
+        '<div class="sr-side"><span class="sr-state ' + z.cls.state + '">' + srEsc(srStateText(z)) + '</span>' + del + '</div></div>';
+    }).join('');
+  }
+
+  /* ---------------- 手入力 ---------------- */
+  function srSetMsg(t) { var m = document.getElementById('sr-msg'); if (m) m.textContent = t || ''; }
+  function bindSrUi() {
+    var form = document.getElementById('sr-form'), list = document.getElementById('sr-list');
+    if (!form) return;
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var pIn = document.getElementById('sr-in-price'), nIn = document.getElementById('sr-in-note');
+      /* 全角数字・カンマを許容してから、厳密に数値検証する */
+      var raw = String(pIn.value || '').replace(/[０-９．]/g, function (c) { return c === '．' ? '.' : String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).replace(/[,\s円]/g, '');
+      var v = Number(raw);
+      if (!raw || !isFinite(v)) { srSetMsg('価格を数字で入力してください(例 155.30)。'); return; }
+      /* 現在値から大きく離れた値は、桁の入力ミスの可能性が高い */
+      var ref = state.price != null ? state.price : (state.candles5mClosed.length ? state.candles5mClosed[state.candles5mClosed.length - 1].c : null);
+      if (ref != null && Math.abs(v - ref) > 15) { srSetMsg('現在値(' + ref.toFixed(2) + ')から15円以上離れています。桁を確認してください。'); return; }
+      if (v <= 50 || v >= 400) { srSetMsg('USD/JPYとして不自然な値です。'); return; }
+      v = Math.round(v * 1000) / 1000;
+      if (SR.manual.some(function (m) { return Math.abs(m.v - v) < 1e-9; })) { srSetMsg('同じ価格が、すでに登録されています。'); return; }
+      if (SR.manual.length >= SR_MAX_MANUAL) { srSetMsg('登録は' + SR_MAX_MANUAL + '件までです。不要なものを削除してください。'); return; }
+      var note = String(nIn.value || '').slice(0, 40);
+      /* 追加日時を記録する: 価格が動いた後に引いた線かどうかを、後で区別できるようにするため */
+      SR.manual.push({ id: 'm' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), v: v, note: note, createdAt: Date.now(), priceAtCreate: ref });
+      srSaveManual(); SR.lastKey = null; pIn.value = ''; nIn.value = ''; srSetMsg('');
+      computeSR(); renderSR(); renderPriceChart();
+    });
+    list.addEventListener('click', function (ev) {
+      var b = ev.target.closest ? ev.target.closest('[data-del]') : null;
+      if (!b) return;
+      var id = b.getAttribute('data-del');
+      SR.manual = SR.manual.filter(function (m) { return m.id !== id; });
+      srSaveManual(); SR.lastKey = null; computeSR(); renderSR(); renderPriceChart();
+    });
+  }
+
+  /* ---------------- 描画: 価格チャート上のゾーン ----------------
+     Chart.js のプラグインで、Y軸の価格に対応する帯を背面に塗る。
+     チャートに表示中の価格範囲(Y軸の min〜max)に入る水準だけを描き、
+     水準のために軸が引き伸ばされて、値動きが潰れるのを防ぐ。 */
+  var SR_CHART_MAX = 6;          // チャートに描く水準の最大数(現在値に近い順)
+  var srZonePlugin = {
+    id: 'srZones',
+    beforeDatasetsDraw: function (chart) {
+      var r = SR.result;
+      if (!r || !r.ok || !r.zones.length) return;
+      var y = chart.scales.y, area = chart.chartArea, ctx = chart.ctx;
+      if (!y || !area) return;
+      var cs = getComputedStyle(document.documentElement);
+      var cPrimary = cs.getPropertyValue('--color-primary').trim() || '#38c6c1', cAccent = cs.getPropertyValue('--color-accent').trim() || '#f2a53c', cText = cs.getPropertyValue('--color-text-muted').trim() || '#8a94a6';
+      /* 描く対象: 表示中の価格範囲に入る水準のうち、強さA・手入力・ゾーン内の水準。現在値に近い順に SR_CHART_MAX 本まで。
+         強さBは、パネルの一覧で見られるので、チャートには描かない(画面がゾーンで埋まって、価格線が読めなくなるため)。 */
+      var px = (chart.data.datasets[0] && chart.data.datasets[0].data.length) ? chart.data.datasets[0].data[chart.data.datasets[0].data.length - 1] : null;
+      var draw = r.zones.filter(function (z) { return !(z.hi < y.min || z.lo > y.max) && (z.grade === 'A' || z.manual); })
+        .sort(function (a, b) { return Math.abs(a.center - (px == null ? a.center : px)) - Math.abs(b.center - (px == null ? b.center : px)); })
+        .slice(0, SR_CHART_MAX);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top); ctx.clip();
+      var lastLabelY = -1e9;
+      draw.slice().sort(function (a, b) { return b.center - a.center; }).forEach(function (z) {
+        var top = y.getPixelForValue(z.hi), bot = y.getPixelForValue(z.lo), yc = y.getPixelForValue(z.center), col = z.manual ? cAccent : cPrimary;
+        ctx.globalAlpha = 0.09; ctx.fillStyle = col;
+        ctx.fillRect(area.left, top, area.right - area.left, Math.max(1, bot - top));
+        ctx.globalAlpha = 0.55; ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.setLineDash(z.manual ? [2, 3] : [6, 4]);
+        ctx.beginPath(); ctx.moveTo(area.left, yc); ctx.lineTo(area.right, yc); ctx.stroke();
+        ctx.setLineDash([]);
+        /* ラベルは、直前に描いたものと縦に14px以上離れているときだけ描く(重なりで読めなくなるのを防ぐ) */
+        if (Math.abs(yc - lastLabelY) >= 14) {
+          ctx.globalAlpha = 0.95; ctx.fillStyle = cText; ctx.font = '10px ui-monospace, monospace'; ctx.textAlign = 'left';
+          ctx.fillText(z.center.toFixed(2) + (z.manual ? ' 手' : ' ' + z.grade), area.left + 4, yc - 3);
+          lastLabelY = yc;
+        }
+      });
+      ctx.restore();
+    }
+  };
+  if (typeof Chart !== 'undefined' && Chart.register) { try { Chart.register(srZonePlugin); } catch (e) {} }
+
+
+  /* ============================================================
+     反応の記録(P2への土台)
+     ------------------------------------------------------------
+     「水準に接近した/反発した/ブレイクした/偽ブレイクした」という状態の"変化した瞬間"だけを保存する。
+     5分足ごとに全水準を保存すると、量が膨らむうえ、同じ状況の重複で検証が歪むため。
+     ・記録するのは、その時点で分かっていること(水準・強さ・状態・価格・ATR・時刻)だけ。先読みしない。
+     ・結果(その後のN時間で、水準から離れた方向と幅)は、時間が経ってから、確定した5分足で埋める。
+     ・既存の値幅予測の検証(signals)とは、保存先も集計も分けている(互いを汚さないため)。
+     ・この段階では、確率を表示しない。溜まった記録を使う検証は、次の段階で行う。
+     ============================================================ */
+  var SR_EV_KEY = 'sr_events_v1';
+  var SR_EV_MAX = 600;             // 上限。古いものから捨てる
+  var SR_OUT_BARS = 36;            // 結果を測る足数 = 5分足36本 = 3時間(値幅予測と同じ長さ)
+  var SR_EV = { list: [], prevState: {}, loaded: false };
+
+  function srEvLoad() {
+    try { var raw = JSON.parse(localStorage.getItem(SR_EV_KEY) || '[]'); SR_EV.list = Array.isArray(raw) ? raw.filter(function (e) { return e && e.t && isFinite(e.zc); }) : []; }
+    catch (e) { SR_EV.list = []; }
+    SR_EV.loaded = true;
+  }
+  function srEvSave() {
+    if (SR_EV.list.length > SR_EV_MAX) SR_EV.list = SR_EV.list.slice(-SR_EV_MAX);
+    try { localStorage.setItem(SR_EV_KEY, JSON.stringify(SR_EV.list)); } catch (e) {}
+  }
+  /* 水準を、価格の位置(小数2桁)と手入力かどうかで識別する。中心は少し動くので、丸めて同一視する */
+  function srZoneKey(z) { return (z.manual ? 'M' : 'A') + z.center.toFixed(2); }
+
+  /* 確定足ごとに呼ぶ。状態が「far → それ以外」「別の状態」へ変わった水準だけを記録する。
+     'near' は、ゾーンに近づくたびに出るので、記録から外す(反発・ブレイク・偽ブレイクの前段でしかなく、
+     結果を測る意味が薄いうえ、件数が増えて検証を歪める)。 */
+  var SR_LOGGED = { rejected: 1, broken: 1, fake: 1 };
+  /* 純関数: 直前の状態(prevSeen)と、いまのゾーン群から、記録すべき遷移を返す。副作用なし(テストしやすい)。
+     ctx: { bar:{t,c,jh}, atrPips, regime }  /  list: 既存の記録(重複判定用)
+     戻り値: { events:[記録すべきもの], seen:{キー:状態} }  ← seen を次回の prevSeen として使う */
+  function srPlanTransitions(zones, prevSeen, ctx, list) {
+    var events = [], seen = {};
+    zones.forEach(function (z) {
+      var k = srZoneKey(z), cur = z.cls.state, prev = prevSeen ? prevSeen[k] : undefined;
+      seen[k] = cur;
+      /* 初回(prev が未定義)は、すでに続いている状態なので、遷移として記録しない */
+      if (prev === undefined || prev === cur || !SR_LOGGED[cur]) return;
+      /* 同じ水準・同じ状態を、6時間以内に重ねて記録しない(行き来で件数が膨らむのを防ぐ) */
+      var dup = list.concat(events).some(function (e) { return e.k === k && e.st === cur && ctx.bar.t - e.t < 6 * 3600 * 1000; });
+      if (dup) return;
+      events.push({
+        t: ctx.bar.t, k: k, zc: +z.center.toFixed(3), lo: +z.lo.toFixed(3), hi: +z.hi.toFixed(3),
+        st: cur, side: z.cls.side || null, sc: +z.score.toFixed(2), gr: z.grade, man: z.manual ? 1 : 0,
+        tch: z.touch.touches, rea: z.touch.reacted, atr: +ctx.atrPips.toFixed(2), px: +ctx.bar.c.toFixed(3),
+        kinds: Object.keys(z.kinds).join(','), rg: ctx.regime || null, jh: ctx.bar.jh != null ? ctx.bar.jh : null,
+        out: null                                   // 結果は後で埋める
+      });
+    });
+    return { events: events, seen: seen };
+  }
+
+  function srRecordTransitions() {
+    var r = SR.result, c5 = state.candles5mClosed;
+    if (!SR_EV.loaded || !r || !r.ok || !c5.length) return 0;
+    var bar = c5[c5.length - 1];
+    var plan = srPlanTransitions(r.zones, SR.prevSeen, { bar: bar, atrPips: r.atrPips, regime: state.condition && state.condition.regimeKey }, SR_EV.list);
+    SR.prevSeen = plan.seen;
+    if (!plan.events.length) return 0;
+    plan.events.forEach(function (e) { SR_EV.list.push(e); });
+    srEvSave();
+    return plan.events.length;
+  }
+
+  /* 結果の確定: 記録から36本(3時間)たった足の確定データを使い、水準を軸に、価格がどう動いたかを測る。
+     up = 水準より上へ最も離れた幅(pips)、dn = 下へ最も離れた幅、fin = 3時間後の終値の、水準からの符号付き距離(pips)。 */
+  /* 純関数: 記録 e の結果を、5分足 c5 から作る。まだ3時間たっていない/足がない場合は null を返す。
+     結果は「記録した足の次の足」から SR_OUT_BARS 本だけを使う(記録時点より前・記録の足自身は使わない=先読みも後知恵も無い)。 */
+  function srComputeOutcome(e, c5, idx, pip) {
+    var bi = idx[e.t];
+    if (bi == null || bi + SR_OUT_BARS >= c5.length) return null;
+    var mx = -Infinity, mn = Infinity;
+    for (var k = bi + 1; k <= bi + SR_OUT_BARS; k++) { if (c5[k].h > mx) mx = c5[k].h; if (c5[k].l < mn) mn = c5[k].l; }
+    return { up: +((mx - e.hi) / pip).toFixed(1), dn: +((e.lo - mn) / pip).toFixed(1), fin: +((c5[bi + SR_OUT_BARS].c - e.zc) / pip).toFixed(1) };
+  }
+
+  function srResolveOutcomes() {
+    var c5 = state.candles5mClosed; if (!c5.length || !SR_EV.list.length) return 0;
+    var idx = {}, i, n = 0;
+    for (i = 0; i < c5.length; i++) idx[c5[i].t] = i;
+    SR_EV.list.forEach(function (e) {
+      if (e.out != null) return;
+      var o = srComputeOutcome(e, c5, idx, CFG.PIP);
+      if (o) { e.out = o; n++; }
+    });
+    if (n) srEvSave();
+    return n;
+  }
+
   function boot() {
+    srLoadManual();
+    srEvLoad();
+    bindSrUi();
     budget.load();
     state.session = getSessionInfo(new Date());
     computeDataFreshness();
