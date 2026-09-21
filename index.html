@@ -724,44 +724,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     <div class="cond-model" id="cond-model">値幅モデル: 初期化中</div>
   </section>
 
-  <!-- ============ 時間帯適性 (静的バックテスト: 245日実データ) ============ -->
-  <section class="panel" id="hourprof-panel">
-    <div class="panel-head">
-      <span class="panel-title">時間帯適性</span>
-      <span class="panel-note">2026年1月8日〜9月11日・休場時間除外38,558本(5分足)の統計検証</span>
-    </div>
-    <div class="hourprof-head">
-      <div>
-        <div class="hourprof-badge" id="hourprof-badge">算出中…</div>
-        <div class="hourprof-sub" id="hourprof-sub">—</div>
-      </div>
-    </div>
-    <div id="hourprof-mr-wrap"></div>
-    <div class="hourprof-strip" id="hourprof-strip"></div>
-    <div class="hourprof-axis"><span>0時</span><span>6時</span><span>12時</span><span>18時</span><span>23時</span></div>
-    <div class="hourprof-legend">
-      <span><i style="background:var(--color-success)"></i>取引に向く時間帯</span>
-      <span><i style="background:var(--color-primary)"></i>条件つき</span>
-      <span><i style="background:var(--color-error)"></i>見送り推奨</span>
-    </div>
-    <p class="strategy-note">
-      上の「想定変動幅」モデルはブラウザ内で継続学習する値幅の大きさの予測です。
-      こちらは別の検定で、上半期(上昇局面)・下半期(下落局面)の両方で結果が一致した時間帯だけを採用しています。
-      値幅が大きくても、往復して終わりやすい時間帯(下記の注意時間帯)ではブレイク追随を避けてください。
-      方向性そのものについては425通りの条件と定番パターン8種を検定しましたが、優位性は確認できませんでした。
-    </p>
-  </section>
-
-  
-
-  
-
-  
-
-  
-
-  
-
   <!-- ============ いまの値幅 (直近1時間の実測 vs 普段) ============ -->
   <section class="panel lv-panel" id="lv-panel">
     <div class="panel-head">
@@ -798,18 +760,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     <p class="strategy-note" id="lv-note"></p>
   </section>
 
-    <!-- ============ Charts ============ -->
-  <section class="panel-grid">
-    <div class="panel">
-      <div class="panel-head">
-        <span class="panel-title">価格 &amp; 出来高 (5分足・デイトレード)</span>
-        <span class="panel-note" id="price-chart-note">EMA20 / EMA50 / VWAP / ピボットP / アジア高安 / サポレジ帯</span>
-      </div>
-      <div class="chart-wrap"><canvas id="chart-price"></canvas></div>
-    </div>
-
-  </section>
-
   <!-- ============ サポート/レジスタンス ============ -->
   <section class="panel" id="sr-panel" aria-labelledby="sr-title">
     <div class="panel-head">
@@ -827,17 +777,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     <div class="sr-msg" id="sr-msg" role="status"></div>
     <p class="strategy-note">手入力した水準は、自動検出の水準とは別に集計し、有効かどうかを後で比べられるようにします。追加した日時を記録します。</p>
   </section>
-
-  <!-- ============ Momentum indicators ============ -->
-  <section class="panel">
-    <div class="panel-head">
-      <span class="panel-title">モメンタム指標 (MACD・RSI・ストキャスティクス)</span>
-      <span class="panel-note">MACD(12,26,9)・RSI(14)・Stochastic(14,3,3) — 5分足</span>
-    </div>
-    <div class="chart-wrap short"><canvas id="chart-momentum"></canvas></div>
-  </section>
-
-
 
   <!-- ============ KPI grid ============ -->
   <section class="kpi-grid" id="kpi-grid" aria-label="主要指標">
@@ -873,29 +812,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     </div>
   </section>
 
-  <section class="panel">
-    <div class="panel-head">
-      <span class="panel-title">経済指標カレンダー</span>
-      <span class="panel-note">FOMC・BOJ会合・米CPI・米雇用統計(NFP) — 直前36時間は要警戒表示</span>
-    </div>
-    <div class="market-closed-banner data-freshness-banner" id="data-freshness-banner" hidden></div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>イベント</th><th>予定日</th><th>残り時間</th></tr>
-        </thead>
-        <tbody id="event-calendar-body">
-          <tr class="empty-row"><td colspan="3">データを算出中…</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="strategy-note">FOMC・BOJは公表済みの日程表(FOMCは2028年1月、BOJは2027年末まで)から、次回を自動で選びます。米CPIは公式日程の手動更新値、米雇用統計(NFP)は「毎月第1金曜日」のルールに基づき自動計算しています。</p>
-  </section>
-
-  
-
-  
-
     <section class="panel collapsible collapsed" data-collapse="decomp">
     <button class="panel-head collapse-head" type="button" aria-expanded="false" aria-controls="collapse-decomp">
       <span class="panel-title">USD/JPY 要因分解 — ドル要因 vs 円要因</span>
@@ -909,6 +825,102 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     <p class="strategy-note" id="decomp-interp">—</p>
     </div>
   </section>
+
+  <!-- ============ 時間帯適性 (静的バックテスト: 245日実データ) ============ -->
+  <section class="panel" id="hourprof-panel">
+    <div class="panel-head">
+      <span class="panel-title">時間帯適性</span>
+      <span class="panel-note">2026年1月8日〜9月11日・休場時間除外38,558本(5分足)の統計検証</span>
+    </div>
+    <div class="hourprof-head">
+      <div>
+        <div class="hourprof-badge" id="hourprof-badge">算出中…</div>
+        <div class="hourprof-sub" id="hourprof-sub">—</div>
+      </div>
+    </div>
+    <div id="hourprof-mr-wrap"></div>
+    <div class="hourprof-strip" id="hourprof-strip"></div>
+    <div class="hourprof-axis"><span>0時</span><span>6時</span><span>12時</span><span>18時</span><span>23時</span></div>
+    <div class="hourprof-legend">
+      <span><i style="background:var(--color-success)"></i>取引に向く時間帯</span>
+      <span><i style="background:var(--color-primary)"></i>条件つき</span>
+      <span><i style="background:var(--color-error)"></i>見送り推奨</span>
+    </div>
+    <p class="strategy-note">
+      上の「想定変動幅」モデルはブラウザ内で継続学習する値幅の大きさの予測です。
+      こちらは別の検定で、上半期(上昇局面)・下半期(下落局面)の両方で結果が一致した時間帯だけを採用しています。
+      値幅が大きくても、往復して終わりやすい時間帯(下記の注意時間帯)ではブレイク追随を避けてください。
+      方向性そのものについては425通りの条件と定番パターン8種を検定しましたが、優位性は確認できませんでした。
+    </p>
+  </section>
+
+    <!-- ============ Charts ============ -->
+  <section class="panel-grid">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">価格 &amp; 出来高 (5分足・デイトレード)</span>
+        <span class="panel-note" id="price-chart-note">EMA20 / EMA50 / VWAP / ピボットP / アジア高安 / サポレジ帯</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-price"></canvas></div>
+    </div>
+
+  </section>
+
+  <!-- ============ Momentum indicators ============ -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="panel-title">モメンタム指標 (RSI・ATR)</span>
+      <span class="panel-note">RSI(14)(左軸・0〜100)・ATR(14)(右軸・pips) — 5分足</span>
+    </div>
+    <div class="chart-wrap short"><canvas id="chart-momentum"></canvas></div>
+  </section>
+
+  <section class="panel collapsible collapsed" data-collapse="calendar">
+    <button class="panel-head collapse-head" type="button" aria-expanded="false" aria-controls="collapse-calendar">
+      <span class="panel-title">経済指標カレンダー</span>
+      <span class="collapse-icon" aria-hidden="true"></span>
+    </button>
+    <div class="collapse-body" id="collapse-calendar">
+      <p class="panel-note">FOMC・BOJ会合・米CPI・米雇用統計(NFP) — 直前36時間は要警戒表示</p>
+    <div class="market-closed-banner data-freshness-banner" id="data-freshness-banner" hidden></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>イベント</th><th>予定日</th><th>残り時間</th></tr>
+        </thead>
+        <tbody id="event-calendar-body">
+          <tr class="empty-row"><td colspan="3">データを算出中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="strategy-note">FOMC・BOJは公表済みの日程表(FOMCは2028年1月、BOJは2027年末まで)から、次回を自動で選びます。米CPIは公式日程の手動更新値、米雇用統計(NFP)は「毎月第1金曜日」のルールに基づき自動計算しています。</p>
+    </div>
+  </section>
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+  
+
+  
+
 
   <!-- ============ Session detail table ============ -->
   <section class="panel collapsible collapsed" data-collapse="session-detail">
@@ -3062,28 +3074,21 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     if (candles.length < 60) return;
     var c = themeColors();
     var closes = candles.map(function (r) { return r.c; });
-    var macdRes = macd(closes, 12, 26, 9);
     var rsiSeries = calcRsiSeries(closes, 14);
-    var stoch = stochastic(candles, 14, 3, 3);
+    /* ATR(14): 5分足の値幅の平均。単位は円なので、pipsに換算して表示する(左のRSIとは軸を分ける) */
+    var atrArr = atrSeries(candles, 14);
 
     var rows = candles.slice(-CFG.MOMENTUM_CHART_BARS);
     var offset = candles.length - rows.length;
     var labels = rows.map(function (r) { return new Date(r.t).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }); });
-    var macdLine = rows.map(function (_, i) { return macdRes.macd[offset + i]; });
-    var signalLine = rows.map(function (_, i) { return macdRes.signal[offset + i]; });
-    var histData = rows.map(function (_, i) { return macdRes.hist[offset + i]; });
     var rsiData = rows.map(function (_, i) { return rsiSeries[offset + i]; });
-    var kData = rows.map(function (_, i) { return stoch.k[offset + i]; });
+    var atrData = rows.map(function (_, i) { var v = atrArr[offset + i]; return v == null ? null : v / CFG.PIP; });
     var overbought = rows.map(function () { return 70; });
     var oversold = rows.map(function () { return 30; });
-    var histColors = histData.map(function (v) { return (v == null) ? 'transparent' : (v >= 0 ? c.success + '99' : c.error + '99'); });
 
     var datasets = [
-      { type: 'bar', label: 'MACDヒストグラム', data: histData, yAxisID: 'yMacd', backgroundColor: histColors, borderWidth: 0, order: 4 },
-      { type: 'line', label: 'MACD', data: macdLine, yAxisID: 'yMacd', borderColor: c.primary, borderWidth: 1.3, pointRadius: 0, tension: 0.2, order: 3 },
-      { type: 'line', label: 'シグナル', data: signalLine, yAxisID: 'yMacd', borderColor: c.accent, borderWidth: 1.3, pointRadius: 0, tension: 0.2, order: 3 },
-      { type: 'line', label: 'RSI(14)', data: rsiData, yAxisID: 'yRsi', borderColor: c.text, borderWidth: 1.3, pointRadius: 0, tension: 0.2, order: 2 },
-      { type: 'line', label: 'Stoch%K', data: kData, yAxisID: 'yRsi', borderColor: c.success, borderWidth: 1.1, pointRadius: 0, tension: 0.2, order: 1 },
+      { type: 'line', label: 'RSI(14)', data: rsiData, yAxisID: 'yRsi', borderColor: c.text, borderWidth: 1.5, pointRadius: 0, tension: 0.2, order: 1 },
+      { type: 'line', label: 'ATR(14) pips', data: atrData, yAxisID: 'yAtr', borderColor: c.accent, borderWidth: 1.5, pointRadius: 0, tension: 0.2, order: 2 },
       { type: 'line', label: '70', data: overbought, yAxisID: 'yRsi', borderColor: c.error, borderWidth: 1, borderDash: [4, 4], pointRadius: 0, order: 0 },
       { type: 'line', label: '30', data: oversold, yAxisID: 'yRsi', borderColor: c.success, borderWidth: 1, borderDash: [4, 4], pointRadius: 0, order: 0 }
     ];
@@ -3098,10 +3103,12 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
           animation: { duration: 300 },
           scales: {
             x: { ticks: { color: c.text, maxTicksLimit: 8, font: { size: 10 } }, grid: { display: false } },
-            yMacd: { position: 'left', ticks: { color: c.text, font: { size: 10 } }, grid: { color: c.grid } },
-            yRsi: { position: 'right', min: 0, max: 100, ticks: { color: c.text, font: { size: 10 } }, grid: { display: false } }
+            yRsi: { position: 'left', min: 0, max: 100, ticks: { color: c.text, font: { size: 10 } }, grid: { color: c.grid },
+                    title: { display: true, text: 'RSI', color: c.text, font: { size: 10 } } },
+            yAtr: { position: 'right', beginAtZero: true, ticks: { color: c.accent, font: { size: 10 } }, grid: { display: false },
+                    title: { display: true, text: 'ATR (pips)', color: c.accent, font: { size: 10 } } }
           },
-          plugins: { legend: { labels: { color: c.text, font: { size: 10 } } } }
+          plugins: { legend: { labels: { color: c.text, font: { size: 10 }, filter: function (item) { return item.text !== '70' && item.text !== '30'; } } } }
         }
       });
     } else {
