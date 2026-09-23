@@ -693,12 +693,23 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
 .sr-rw-bar { position: relative; height: 6px; border-radius: var(--radius-full); background: var(--color-surface-3, var(--color-divider)); margin-top: 4px; overflow: hidden; }
 .sr-rw-bar > i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--color-primary); border-radius: var(--radius-full); }
 .sr-rw-alerts { display: flex; flex-direction: column; gap: var(--space-2); }
-.sr-rw-alert { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--color-border); background: var(--color-surface-2); border-radius: var(--radius-md); }
-.sr-rw-alert .dir { font-weight: 600; font-size: var(--text-xs); padding: 2px 8px; border-radius: var(--radius-full); border: 1px solid var(--color-border); color: var(--color-text-muted); white-space: nowrap; }
+.sr-rw-alert { display: grid; grid-template-columns: 1fr; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--color-border); background: var(--color-surface-2); border-radius: var(--radius-md); }
+.sr-rw-alert .tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.sr-rw-tag { font-size: var(--text-xs); font-weight: 600; padding: 3px 10px; border-radius: var(--radius-full); border: 1px solid var(--color-border); color: var(--color-text-muted); white-space: nowrap; }
+.sr-rw-tag.up { color: var(--color-error); border-color: var(--color-error); background: var(--color-error-highlight); }
+.sr-rw-tag.down { color: var(--color-primary); border-color: var(--color-primary); background: var(--color-primary-highlight); }
 .sr-rw-alert .body { min-width: 0; font-size: var(--text-xs); color: var(--color-text-muted); }
 .sr-rw-alert .body b { color: var(--color-text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.sr-rw-alert .freq { font-size: var(--text-xs); color: var(--color-text-faint); text-align: right; white-space: nowrap; }
-@media (max-width: 560px) { .sr-rw-alert { grid-template-columns: 1fr; } .sr-rw-alert .freq { text-align: left; } }
+.sr-rw-alert .freq { font-size: var(--text-xs); color: var(--color-text-faint); }
+
+/* ---- タブ切り替え ---- */
+.tabbar { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); border-bottom: 1px solid var(--color-divider); padding-bottom: 0; }
+.tabbar-btn { appearance: none; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--color-text-muted); font: inherit; font-size: var(--text-sm); font-weight: 600; padding: var(--space-3) var(--space-2); cursor: pointer; white-space: nowrap; }
+.tabbar-btn:hover { color: var(--color-text); }
+.tabbar-btn.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+.tabbar-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.tabpanel[hidden] { display: none; }
+@media (max-width: 560px) { .tabbar { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; } .tabbar-btn { padding: var(--space-2) var(--space-2); font-size: var(--text-xs); } }
 </style>
 </head>
 <body>
@@ -741,258 +752,285 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     <div class="cond-model" id="cond-model">値幅モデル: 初期化中</div>
   </section>
 
-  <!-- ============ いまの値幅 (直近1時間の実測 vs 普段) ============ -->
-  <section class="panel lv-panel" id="lv-panel">
-    <div class="panel-head">
-      <span class="panel-title">いまの値幅(直近1時間の実測)</span>
-      <span class="panel-note" id="lv-asof">価格データ待ち</span>
-    </div>
-    <p class="panel-note" id="lv-status">価格データの取得を待っています。</p>
-    <p class="panel-note" id="lv-table"></p>
-
-    <div class="lv-grid">
-      <div class="lv-col-l">
-        <div class="lv-top">
-          <div>
-            <div class="lv-big"><span id="lv-live">—</span><small>pips</small></div>
-            <div class="lv-sub" id="lv-sub">直近1時間の5分足の平均値幅</div>
-          </div>
-          <span class="lv-badge idle" id="lv-badge">—</span>
-        </div>
-        <div class="lv-metrics">
-          <div class="lv-metric key"><b id="lv-ratio">—</b><span>普段との比</span></div>
-          <div class="lv-metric"><b id="lv-base">—</b><span>普段の値幅(pips)</span></div>
-          <div class="lv-metric"><b id="lv-last">—</b><span>最新1本(pips)</span></div>
-        </div>
-        <div class="lv-advice" id="lv-advice" hidden></div>
-      </div>
-
-      <div class="lv-col-r">
-        <div class="lv-bars" id="lv-bars" role="img" aria-label="直近1時間の5分足の値幅"></div>
-        <div class="lv-barlabels"><span id="lv-t0"></span><span id="lv-t1"></span></div>
-        <p class="lv-legend"><span><i class="a"></i>5分足1本の値幅</span><span><i class="b"></i>同じ時間帯の普段の値幅</span></p>
-      </div>
-    </div>
-
-    <p class="strategy-note" id="lv-note"></p>
-  </section>
-
-  <!-- ============ サポート/レジスタンス ============ -->
-  <section class="panel" id="sr-panel" aria-labelledby="sr-title">
-    <div class="panel-head">
-      <span class="panel-title" id="sr-title">サポート/レジスタンス(自動検出)</span>
-      <span class="panel-note" id="sr-note">価格データ待ち</span>
-    </div>
-    <p class="strategy-note" id="sr-caveat">水準の「強さ」と、いまの価格の「反応の状態」を表示します。売買の方向は予測しません。反応の記録を蓄積し、有効性を検証してから、確率の表示に進みます。</p>
-    <div class="sr-summary" id="sr-summary" aria-live="polite"></div>
-
-    <!-- ============ レンジ監視(参考値・記述統計) ============ -->
-    <div class="sr-rangewatch" id="sr-rangewatch" aria-live="polite"></div>
-
-    <div class="sr-list" id="sr-list"></div>
-    <form class="sr-form" id="sr-form" autocomplete="off">
-      <label>手入力する価格(円)<input id="sr-in-price" inputmode="decimal" placeholder="例 155.30" aria-describedby="sr-msg"></label>
-      <label>メモ(任意)<input id="sr-in-note" maxlength="40" placeholder="例 先週の高値"></label>
-      <button type="submit">追加</button>
-    </form>
-    <div class="sr-msg" id="sr-msg" role="status"></div>
-    <p class="strategy-note">手入力した水準は、自動検出の水準とは別に集計し、有効かどうかを後で比べられるようにします。追加した日時を記録します。</p>
-  </section>
-
-  <!-- ============ KPI grid ============ -->
-  <section class="kpi-grid" id="kpi-grid" aria-label="主要指標">
-    <div class="kpi-card" id="kpi-price">
-      <div class="kpi-label">USD/JPY</div>
-      <div class="kpi-value tabular" id="v-price">—</div>
-      <div class="kpi-sub flat" id="v-price-sub">本日 —</div>
-    </div>
-    <div class="kpi-card" id="kpi-htf">
-      <div class="kpi-label">上位足トレンド (1時間足)</div>
-      <div class="kpi-value" id="v-htf">—</div>
-      <div class="kpi-sub flat" id="v-htf-sub">EMA20 / EMA50</div>
-    </div>
-    <div class="kpi-card" id="kpi-pivot">
-      <div class="kpi-label">ピボットポイント (前日基準)</div>
-      <div class="kpi-value tabular" id="v-pivot">—</div>
-      <div class="kpi-sub flat" id="v-pivot-sub">R1 / S1</div>
-    </div>
-    <div class="kpi-card" id="kpi-vwap">
-      <div class="kpi-label">セッションVWAP</div>
-      <div class="kpi-value tabular" id="v-vwap">—</div>
-      <div class="kpi-sub flat" id="v-vwap-sub">価格との乖離</div>
-    </div>
-    <div class="kpi-card" id="kpi-spx">
-      <div class="kpi-label">S&amp;P500 (リスクセンチメント)</div>
-      <div class="kpi-value tabular" id="v-spx">—</div>
-      <div class="kpi-sub flat" id="v-spx-sub">判定中…</div>
-    </div>
-    <div class="kpi-card" id="kpi-nikkei">
-      <div class="kpi-label">日経平均</div>
-      <div class="kpi-value tabular" id="v-nikkei">—</div>
-      <div class="kpi-sub flat" id="v-nikkei-sub">判定中…</div>
-    </div>
-  </section>
-
-    <section class="panel collapsible collapsed" data-collapse="decomp">
-    <button class="panel-head collapse-head" type="button" aria-expanded="false" aria-controls="collapse-decomp">
-      <span class="panel-title">USD/JPY 要因分解 — ドル要因 vs 円要因</span>
-      <span class="collapse-icon" aria-hidden="true"></span>
-    </button>
-    <div class="collapse-body" id="collapse-decomp">
-      <p class="panel-note" id="decomp-note">クロス通貨を取得中…</p>
-      <div class="decomp-grid" id="decomp-body">
-      <div class="empty-box">クロス通貨のデータ待ちです</div>
-    </div>
-    <p class="strategy-note" id="decomp-interp">—</p>
-    </div>
-  </section>
-
-  <!-- ============ 時間帯適性 (静的バックテスト: 245日実データ) ============ -->
-  <section class="panel" id="hourprof-panel">
-    <div class="panel-head">
-      <span class="panel-title">時間帯適性</span>
-      <span class="panel-note">2026年1月8日〜9月11日・休場時間除外38,558本(5分足)の統計検証</span>
-    </div>
-    <div class="hourprof-head">
-      <div>
-        <div class="hourprof-badge" id="hourprof-badge">算出中…</div>
-        <div class="hourprof-sub" id="hourprof-sub">—</div>
-      </div>
-    </div>
-    <div id="hourprof-mr-wrap"></div>
-    <div class="hourprof-strip" id="hourprof-strip"></div>
-    <div class="hourprof-axis"><span>0時</span><span>6時</span><span>12時</span><span>18時</span><span>23時</span></div>
-    <div class="hourprof-legend">
-      <span><i style="background:var(--color-success)"></i>取引に向く時間帯</span>
-      <span><i style="background:var(--color-primary)"></i>条件つき</span>
-      <span><i style="background:var(--color-error)"></i>見送り推奨</span>
-    </div>
-    <p class="strategy-note">
-      上の「想定変動幅」モデルはブラウザ内で継続学習する値幅の大きさの予測です。
-      こちらは別の検定で、上半期(上昇局面)・下半期(下落局面)の両方で結果が一致した時間帯だけを採用しています。
-      値幅が大きくても、往復して終わりやすい時間帯(下記の注意時間帯)ではブレイク追随を避けてください。
-      方向性そのものについては425通りの条件と定番パターン8種を検定しましたが、優位性は確認できませんでした。
-    </p>
-  </section>
-
-    <!-- ============ Charts ============ -->
-  <section class="panel-grid">
-    <div class="panel">
-      <div class="panel-head">
-        <span class="panel-title">価格 &amp; 出来高 (5分足・デイトレード)</span>
-        <span class="panel-note" id="price-chart-note">EMA20 / EMA50 / VWAP / ピボットP / アジア高安 / サポレジ帯</span>
-      </div>
-      <div class="chart-wrap"><canvas id="chart-price"></canvas></div>
-    </div>
-
-  </section>
-
-  <!-- ============ Momentum indicators ============ -->
-  <section class="panel">
-    <div class="panel-head">
-      <span class="panel-title">モメンタム指標 (RSI・ATR)</span>
-      <span class="panel-note">RSI(14)(左軸・0〜100)・ATR(14)(右軸・pips) — 5分足</span>
-    </div>
-    <div class="chart-wrap short"><canvas id="chart-momentum"></canvas></div>
-  </section>
-
-  <section class="panel collapsible collapsed" data-collapse="calendar">
-    <button class="panel-head collapse-head" type="button" aria-expanded="false" aria-controls="collapse-calendar">
-      <span class="panel-title">経済指標カレンダー</span>
-      <span class="collapse-icon" aria-hidden="true"></span>
-    </button>
-    <div class="collapse-body" id="collapse-calendar">
-      <p class="panel-note">FOMC・BOJ会合・米CPI・米雇用統計(NFP) — 直前36時間は要警戒表示</p>
-    <div class="market-closed-banner data-freshness-banner" id="data-freshness-banner" hidden></div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>イベント</th><th>予定日</th><th>残り時間</th></tr>
-        </thead>
-        <tbody id="event-calendar-body">
-          <tr class="empty-row"><td colspan="3">データを算出中…</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="strategy-note">FOMC・BOJは公表済みの日程表(FOMCは2028年1月、BOJは2027年末まで)から、次回を自動で選びます。米CPIは公式日程の手動更新値、米雇用統計(NFP)は「毎月第1金曜日」のルールに基づき自動計算しています。</p>
-    </div>
-  </section>
-
-
-
-  
-
-  
-
-  
-
-  
-
-  
-
-
-
-
-
-
-
-
-
-  
-
-  
-
-
-  <!-- ============ Session detail table ============ -->
-  <section class="panel collapsible collapsed" data-collapse="session-detail">
-    <button class="panel-head collapse-head" type="button" aria-expanded="false" aria-controls="collapse-session-detail">
-      <span class="panel-title">セッション別 高値・安値 (詳細)</span>
-      <span class="collapse-icon" aria-hidden="true"></span>
-    </button>
-    <div class="collapse-body" id="collapse-session-detail">
-      <p class="panel-note">直近12セッション分 · 1時間足集計</p><div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>日付</th><th>セッション</th><th>高値 / 安値</th><th>値幅</th></tr>
-        </thead>
-        <tbody id="session-table-body">
-          <tr class="empty-row"><td colspan="4">データを取得中…</td></tr>
-        </tbody>
-      </table>
-    </div>
-    </div>
-  </section>
-
-<!-- ============ [#14/#15] 検証エンジン ============ -->
-  <div class="panel-divider">
-    <span>検証エンジン(値幅予測の記録)</span>
+  <!-- ============ タブ切り替え ============ -->
+  <div class="tabbar" role="tablist" aria-label="表示パネルの切り替え">
+      <button type="button" class="tabbar-btn active" id="tabbtn-tab1" role="tab" aria-selected="true" aria-controls="tabpanel-tab1">KPI・サポレジ・要因分解</button>
+      <button type="button" class="tabbar-btn" id="tabbtn-tab2" role="tab" aria-selected="false" aria-controls="tabpanel-tab2">想定変動幅・時間帯適性</button>
+      <button type="button" class="tabbar-btn" id="tabbtn-tab3" role="tab" aria-selected="false" aria-controls="tabpanel-tab3">価格・モメンタム・セッション</button>
+      <button type="button" class="tabbar-btn" id="tabbtn-tab4" role="tab" aria-selected="false" aria-controls="tabpanel-tab4">経済指標カレンダー</button>
+      <button type="button" class="tabbar-btn" id="tabbtn-tab5" role="tab" aria-selected="false" aria-controls="tabpanel-tab5">値幅予測の精度検証</button>
   </div>
 
+  <div class="tabpanel" id="tabpanel-tab1" role="tabpanel" aria-labelledby="tabbtn-tab1">
+    <!-- ============ KPI grid ============ -->
+    <section class="kpi-grid" id="kpi-grid" aria-label="主要指標">
+      <div class="kpi-card" id="kpi-price">
+        <div class="kpi-label">USD/JPY</div>
+        <div class="kpi-value tabular" id="v-price">—</div>
+        <div class="kpi-sub flat" id="v-price-sub">本日 —</div>
+      </div>
+      <div class="kpi-card" id="kpi-htf">
+        <div class="kpi-label">上位足トレンド (1時間足)</div>
+        <div class="kpi-value" id="v-htf">—</div>
+        <div class="kpi-sub flat" id="v-htf-sub">EMA20 / EMA50</div>
+      </div>
+      <div class="kpi-card" id="kpi-pivot">
+        <div class="kpi-label">ピボットポイント (前日基準)</div>
+        <div class="kpi-value tabular" id="v-pivot">—</div>
+        <div class="kpi-sub flat" id="v-pivot-sub">R1 / S1</div>
+      </div>
+      <div class="kpi-card" id="kpi-vwap">
+        <div class="kpi-label">セッションVWAP</div>
+        <div class="kpi-value tabular" id="v-vwap">—</div>
+        <div class="kpi-sub flat" id="v-vwap-sub">価格との乖離</div>
+      </div>
+      <div class="kpi-card" id="kpi-spx">
+        <div class="kpi-label">S&amp;P500 (リスクセンチメント)</div>
+        <div class="kpi-value tabular" id="v-spx">—</div>
+        <div class="kpi-sub flat" id="v-spx-sub">判定中…</div>
+      </div>
+      <div class="kpi-card" id="kpi-nikkei">
+        <div class="kpi-label">日経平均</div>
+        <div class="kpi-value tabular" id="v-nikkei">—</div>
+        <div class="kpi-sub flat" id="v-nikkei-sub">判定中…</div>
+      </div>
+    </section>
+
+    <!-- ============ サポート/レジスタンス ============ -->
+    <section class="panel" id="sr-panel" aria-labelledby="sr-title">
+      <div class="panel-head">
+        <span class="panel-title" id="sr-title">サポート/レジスタンス(自動検出)</span>
+        <span class="panel-note" id="sr-note">価格データ待ち</span>
+      </div>
+      <p class="strategy-note" id="sr-caveat">水準の「強さ」と、いまの価格の「反応の状態」を表示します。売買の方向は予測しません。反応の記録を蓄積し、有効性を検証してから、確率の表示に進みます。</p>
+      <div class="sr-summary" id="sr-summary" aria-live="polite"></div>
+
+      <!-- ============ レンジ監視(参考値・記述統計) ============ -->
+      <div class="sr-rangewatch" id="sr-rangewatch" aria-live="polite"></div>
+
+      <div class="sr-list" id="sr-list"></div>
+      <form class="sr-form" id="sr-form" autocomplete="off">
+        <label>手入力する価格(円)<input id="sr-in-price" inputmode="decimal" placeholder="例 155.30" aria-describedby="sr-msg"></label>
+        <label>メモ(任意)<input id="sr-in-note" maxlength="40" placeholder="例 先週の高値"></label>
+        <button type="submit">追加</button>
+      </form>
+      <div class="sr-msg" id="sr-msg" role="status"></div>
+      <p class="strategy-note">手入力した水準は、自動検出の水準とは別に集計し、有効かどうかを後で比べられるようにします。追加した日時を記録します。</p>
+    </section>
+
+      <section class="panel collapsible collapsed" data-collapse="decomp">
+      <button class="panel-head collapse-head" type="button" aria-expanded="false" aria-controls="collapse-decomp">
+        <span class="panel-title">USD/JPY 要因分解 — ドル要因 vs 円要因</span>
+        <span class="collapse-icon" aria-hidden="true"></span>
+      </button>
+      <div class="collapse-body" id="collapse-decomp">
+        <p class="panel-note" id="decomp-note">クロス通貨を取得中…</p>
+        <div class="decomp-grid" id="decomp-body">
+        <div class="empty-box">クロス通貨のデータ待ちです</div>
+      </div>
+      <p class="strategy-note" id="decomp-interp">—</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="tabpanel" id="tabpanel-tab2" role="tabpanel" aria-labelledby="tabbtn-tab2" hidden>
+    <!-- ============ いまの値幅 (直近1時間の実測 vs 普段) ============ -->
+    <section class="panel lv-panel" id="lv-panel">
+      <div class="panel-head">
+        <span class="panel-title">いまの値幅(直近1時間の実測)</span>
+        <span class="panel-note" id="lv-asof">価格データ待ち</span>
+      </div>
+      <p class="panel-note" id="lv-status">価格データの取得を待っています。</p>
+      <p class="panel-note" id="lv-table"></p>
+
+      <div class="lv-grid">
+        <div class="lv-col-l">
+          <div class="lv-top">
+            <div>
+              <div class="lv-big"><span id="lv-live">—</span><small>pips</small></div>
+              <div class="lv-sub" id="lv-sub">直近1時間の5分足の平均値幅</div>
+            </div>
+            <span class="lv-badge idle" id="lv-badge">—</span>
+          </div>
+          <div class="lv-metrics">
+            <div class="lv-metric key"><b id="lv-ratio">—</b><span>普段との比</span></div>
+            <div class="lv-metric"><b id="lv-base">—</b><span>普段の値幅(pips)</span></div>
+            <div class="lv-metric"><b id="lv-last">—</b><span>最新1本(pips)</span></div>
+          </div>
+          <div class="lv-advice" id="lv-advice" hidden></div>
+        </div>
+
+        <div class="lv-col-r">
+          <div class="lv-bars" id="lv-bars" role="img" aria-label="直近1時間の5分足の値幅"></div>
+          <div class="lv-barlabels"><span id="lv-t0"></span><span id="lv-t1"></span></div>
+          <p class="lv-legend"><span><i class="a"></i>5分足1本の値幅</span><span><i class="b"></i>同じ時間帯の普段の値幅</span></p>
+        </div>
+      </div>
+
+      <p class="strategy-note" id="lv-note"></p>
+    </section>
+
+    <!-- ============ 時間帯適性 (静的バックテスト: 245日実データ) ============ -->
+    <section class="panel" id="hourprof-panel">
+      <div class="panel-head">
+        <span class="panel-title">時間帯適性</span>
+        <span class="panel-note">2026年1月8日〜9月11日・休場時間除外38,558本(5分足)の統計検証</span>
+      </div>
+      <div class="hourprof-head">
+        <div>
+          <div class="hourprof-badge" id="hourprof-badge">算出中…</div>
+          <div class="hourprof-sub" id="hourprof-sub">—</div>
+        </div>
+      </div>
+      <div id="hourprof-mr-wrap"></div>
+      <div class="hourprof-strip" id="hourprof-strip"></div>
+      <div class="hourprof-axis"><span>0時</span><span>6時</span><span>12時</span><span>18時</span><span>23時</span></div>
+      <div class="hourprof-legend">
+        <span><i style="background:var(--color-success)"></i>取引に向く時間帯</span>
+        <span><i style="background:var(--color-primary)"></i>条件つき</span>
+        <span><i style="background:var(--color-error)"></i>見送り推奨</span>
+      </div>
+      <p class="strategy-note">
+        上の「想定変動幅」モデルはブラウザ内で継続学習する値幅の大きさの予測です。
+        こちらは別の検定で、上半期(上昇局面)・下半期(下落局面)の両方で結果が一致した時間帯だけを採用しています。
+        値幅が大きくても、往復して終わりやすい時間帯(下記の注意時間帯)ではブレイク追随を避けてください。
+        方向性そのものについては425通りの条件と定番パターン8種を検定しましたが、優位性は確認できませんでした。
+      </p>
+    </section>
+  </div>
+
+  <div class="tabpanel" id="tabpanel-tab3" role="tabpanel" aria-labelledby="tabbtn-tab3" hidden>
+      <!-- ============ Charts ============ -->
+    <section class="panel-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">価格 &amp; 出来高 (5分足・デイトレード)</span>
+          <span class="panel-note" id="price-chart-note">EMA20 / EMA50 / VWAP / ピボットP / アジア高安 / サポレジ帯</span>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-price"></canvas></div>
+      </div>
+
+    </section>
+
+    <!-- ============ Momentum indicators ============ -->
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">モメンタム指標 (RSI・ATR)</span>
+        <span class="panel-note">RSI(14)(左軸・0〜100)・ATR(14)(右軸・pips) — 5分足</span>
+      </div>
+      <div class="chart-wrap short"><canvas id="chart-momentum"></canvas></div>
+    </section>
+
+    <!-- ============ Session detail table ============ -->
+    <section class="panel collapsible collapsed" data-collapse="session-detail">
+      <button class="panel-head collapse-head" type="button" aria-expanded="false" aria-controls="collapse-session-detail">
+        <span class="panel-title">セッション別 高値・安値 (詳細)</span>
+        <span class="collapse-icon" aria-hidden="true"></span>
+      </button>
+      <div class="collapse-body" id="collapse-session-detail">
+        <p class="panel-note">直近12セッション分 · 1時間足集計</p><div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>日付</th><th>セッション</th><th>高値 / 安値</th><th>値幅</th></tr>
+          </thead>
+          <tbody id="session-table-body">
+            <tr class="empty-row"><td colspan="4">データを取得中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="tabpanel" id="tabpanel-tab4" role="tabpanel" aria-labelledby="tabbtn-tab4" hidden>
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">経済指標カレンダー</span>
+      </div>
+        <p class="panel-note">FOMC・BOJ会合・米CPI・米雇用統計(NFP) — 直前36時間は要警戒表示</p>
+      <div class="market-closed-banner data-freshness-banner" id="data-freshness-banner" hidden></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>イベント</th><th>予定日</th><th>残り時間</th></tr>
+          </thead>
+          <tbody id="event-calendar-body">
+            <tr class="empty-row"><td colspan="3">データを算出中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="strategy-note">FOMC・BOJは公表済みの日程表(FOMCは2028年1月、BOJは2027年末まで)から、次回を自動で選びます。米CPIは公式日程の手動更新値、米雇用統計(NFP)は「毎月第1金曜日」のルールに基づき自動計算しています。</p>
+    
+    </section>
+  </div>
+
+  <div class="tabpanel" id="tabpanel-tab5" role="tabpanel" aria-labelledby="tabbtn-tab5" hidden>
+  <!-- ============ [#14/#15] 検証エンジン ============ -->
+    <div class="panel-divider">
+      <span>検証エンジン(値幅予測の記録)</span>
+    </div>
+
   
 
-  <section class="panel">
-    <div class="panel-head">
-      <span class="panel-title">値幅予測の精度検証</span>
-      <span class="panel-note" id="calib-note">記録を読み込み中…</span>
-    </div>
-    <div class="hist-toolbar">
-      <span class="hist-status" id="hist-status">初期化中…</span>
-      <button class="hist-menu-btn" id="btn-hist-menu" type="button" aria-expanded="false" aria-controls="hist-menu" aria-label="データ操作メニュー">⋯</button>
-    </div>
-    <div class="hist-menu" id="hist-menu" hidden>
-      <button class="jbtn ghost" id="btn-hist-export">記録CSVを書き出す</button>
-      <button class="jbtn ghost danger" id="btn-hist-clear">記録をすべて消去</button>
-      <p class="hist-menu-note">消去した記録は元に戻せません。</p>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>予測四分位</th><th>件数</th><th>予測</th><th>実測</th></tr></thead>
-        <tbody id="calib-body"><tr class="empty-row"><td colspan="4">蓄積中…</td></tr></tbody>
-      </table>
-    </div>
-    <div class="chart-wrap short"><canvas id="chart-calib"></canvas></div>
-    <p class="strategy-note" id="calib-caveat">値幅予測が実際に当たっているかを、この端末の記録で検証します。</p>
-  </section>
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">値幅予測の精度検証</span>
+        <span class="panel-note" id="calib-note">記録を読み込み中…</span>
+      </div>
+      <div class="hist-toolbar">
+        <span class="hist-status" id="hist-status">初期化中…</span>
+        <button class="hist-menu-btn" id="btn-hist-menu" type="button" aria-expanded="false" aria-controls="hist-menu" aria-label="データ操作メニュー">⋯</button>
+      </div>
+      <div class="hist-menu" id="hist-menu" hidden>
+        <button class="jbtn ghost" id="btn-hist-export">記録CSVを書き出す</button>
+        <button class="jbtn ghost danger" id="btn-hist-clear">記録をすべて消去</button>
+        <p class="hist-menu-note">消去した記録は元に戻せません。</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>予測四分位</th><th>件数</th><th>予測</th><th>実測</th></tr></thead>
+          <tbody id="calib-body"><tr class="empty-row"><td colspan="4">蓄積中…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="chart-wrap short"><canvas id="chart-calib"></canvas></div>
+      <p class="strategy-note" id="calib-caveat">値幅予測が実際に当たっているかを、この端末の記録で検証します。</p>
+    </section>
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+
 
   
 
@@ -4000,7 +4038,42 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       manual:  { w: 2.5, label: '手入力' }
     };
   
-    /* ---------- 基本ユーティリティ ---------- */
+    /* ---------- 1時間足RSI(14) ----------
+       レンジ監視パネルの事後頻度表示専用(2016-2020年の記述統計と同じ計算方法: 1時間足終値ベースのRSI14)。
+       ダッシュボード本体のモメンタムパネルが使う5分足RSIとは別物(時間軸が異なるため計算も分ける)。 */
+    function rsi1h(c1h, period) {
+      var n = c1h.length, out = new Array(n).fill(null);
+      if (n <= period) return out;
+      var gains = new Array(n).fill(0), losses = new Array(n).fill(0), i;
+      for (i = 1; i < n; i++) {
+        var d = c1h[i].c - c1h[i - 1].c;
+        gains[i] = d > 0 ? d : 0;
+        losses[i] = d < 0 ? -d : 0;
+      }
+      var avgG = 0, avgL = 0;
+      for (i = 1; i <= period; i++) { avgG += gains[i]; avgL += losses[i]; }
+      avgG /= period; avgL /= period;
+      function rsiFrom(ag, al) { return al === 0 ? 100 : (100 - 100 / (1 + ag / al)); }
+      out[period] = rsiFrom(avgG, avgL);
+      for (i = period + 1; i < n; i++) {
+        avgG = (avgG * (period - 1) + gains[i]) / period;
+        avgL = (avgL * (period - 1) + losses[i]) / period;
+        out[i] = rsiFrom(avgG, avgL);
+      }
+      return out;
+    }
+  
+    /* ---------- セクションVWAP(簡易) ----------
+       出来高データが無いため、直近lookback本のTypical Price(高値+安値+終値)/3 の単純平均で代用する
+       (記述統計側と同じ簡易定義。厳密な出来高加重ではない)。 */
+    function sectionVwap1h(c1h, idx, lookback) {
+      if (idx < 0 || idx >= c1h.length) return null;
+      var start = Math.max(0, idx - lookback + 1), sum = 0, n = 0;
+      for (var i = start; i <= idx; i++) { sum += (c1h[i].h + c1h[i].l + c1h[i].c) / 3; n++; }
+      return n ? sum / n : null;
+    }
+  
+  
     function atrOf(c1h, period) {
       var n = c1h.length, tr = new Array(n), out = new Array(n).fill(null), i;
       for (i = 0; i < n; i++) {
@@ -4296,6 +4369,17 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       var atrArr = atrOf(c1h, 14), atr = atrArr[atrArr.length - 1];
       if (atr == null || atr / P.PIP < P.MIN_ATR_PIPS) return { ok: false, reason: 'ATRが算出できないため、水準を検出できません', zones: [] };
       input.atr = atr;
+      /* レンジ監視パネルの事後頻度表示用: 直近1時間足のRSI(14)・セクションVWAPと、価格との関係 */
+      var rsiArr = rsi1h(c1h, 14);
+      var lastIdx = c1h.length - 1;
+      var lastRsi = rsiArr.length ? rsiArr[lastIdx] : null;
+      var lastVwap = sectionVwap1h(c1h, lastIdx, 24);
+      var lastClose = c1h.length ? c1h[lastIdx].c : null;
+      var dirState = {
+        rsiAbove50: lastRsi != null ? lastRsi > 50 : null,
+        priceAboveVwap: (lastVwap != null && lastClose != null) ? lastClose > lastVwap : null,
+        rsi: lastRsi, vwap: lastVwap
+      };
       var cands = collectCandidates(input);
       var groups = cluster(cands, atr);
       var sinceMs = nowMs - 20 * 86400000;
@@ -4331,11 +4415,11 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       /* 表示対象は、現在値から±6×ATR以内 かつ 強度がC以外(手入力は常に表示) */
       var shown = zones.filter(function (z) { return Math.abs(z.distAtr) <= 6 && (z.grade !== 'C' || z.manual); });
       shown = thin(shown, atr);
-      return { ok: true, atr: atr, atrPips: atr / P.PIP, zones: shown, all: zones, nearestUp: up, nearestDown: dn, inZone: inZone, params: P, refStats: REF_STATS };
+      return { ok: true, atr: atr, atrPips: atr / P.PIP, zones: shown, all: zones, nearestUp: up, nearestDown: dn, inZone: inZone, params: P, refStats: REF_STATS, dirState: dirState };
     }
   
     return { detect: detect, atrOf: atrOf, findSwings: findSwings, roundLevels: roundLevels, cluster: cluster, measureTouches: measureTouches,
-      measureTouches1h: measureTouches1h, zoneFormationStart: zoneFormationStart, refStats: REF_STATS,
+      measureTouches1h: measureTouches1h, zoneFormationStart: zoneFormationStart, refStats: REF_STATS, rsi1h: rsi1h, sectionVwap1h: sectionVwap1h,
       scoreZone: scoreZone, classify: classify, thin: thin, collectCandidates: collectCandidates, KIND: KIND, P: P, gradeOf: gradeOf };
   })();
 
@@ -4510,15 +4594,30 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
 
     var alertsHtml = '';
     if (candidates.length) {
-      alertsHtml = '<p class="sr-rw-note" style="margin-top:var(--space-3)">接触回数が過去の目安に近づいている水準です。方向は「ブレイクした場合に過去どちら向きが多かったか」の頻度で、予測ではありません(参考: 全体で上234件・下229件とほぼ半々)。</p>' +
+      var ds = r.dirState || {};
+      alertsHtml = '<p class="sr-rw-note" style="margin-top:var(--space-3)">接触回数が過去の目安に近づいている水準です。数値は「過去、上/下に抜けたケースを振り返ったときのRSI・VWAPの位置の頻度」(事後頻度)です。これから上下どちらに抜けるかを予測するものではありません。</p>' +
         '<div class="sr-rw-alerts">' + candidates.map(function (c) {
           var z = c.z;
           var upR = ref.breakDirRate.rsi.up, dnR = ref.breakDirRate.rsi.down;
           var upV = ref.breakDirRate.vwap.up, dnV = ref.breakDirRate.vwap.down;
+          /* いまのRSI・VWAPの位置(上寄り/下寄り)に対応する事後頻度を選び、色付きで強調する。
+             位置が不明(データ不足)な場合は、両方を並べて表示するに留める。 */
+          var rsiSideUp = ds.rsiAbove50 === true, rsiSideDn = ds.rsiAbove50 === false;
+          var vwapSideUp = ds.priceAboveVwap === true, vwapSideDn = ds.priceAboveVwap === false;
+          var rsiPct = rsiSideUp ? Math.round(upR * 100) : (rsiSideDn ? Math.round(dnR * 100) : null);
+          var vwapPct = vwapSideUp ? Math.round(upV * 100) : (vwapSideDn ? Math.round(dnV * 100) : null);
+          var rsiCls = rsiSideUp ? 'up' : (rsiSideDn ? 'down' : '');
+          var vwapCls = vwapSideUp ? 'up' : (vwapSideDn ? 'down' : '');
+          var rsiTag = rsiPct != null
+            ? '<span class="sr-rw-tag ' + rsiCls + '">RSI ' + (rsiSideUp ? '50超' : '50未満') + ' → 同方向だった事後頻度 ' + rsiPct + '%</span>'
+            : '<span class="sr-rw-tag">RSIデータ不足</span>';
+          var vwapTag = vwapPct != null
+            ? '<span class="sr-rw-tag ' + vwapCls + '">VWAP ' + (vwapSideUp ? '上' : '下') + ' → 同方向だった事後頻度 ' + vwapPct + '%</span>'
+            : '<span class="sr-rw-tag">VWAPデータ不足</span>';
           return '<div class="sr-rw-alert">' +
-            '<span class="dir">方向は未定</span>' +
+            '<div class="tags">' + rsiTag + vwapTag + '</div>' +
             '<div class="body">' + z.center.toFixed(3) + '(強さ' + z.grade + ') · 接触<b>' + z.touch1h + '回</b>(1h足) ' + srStateText(z) + '</div>' +
-            '<div class="freq">上抜け時RSI一致' + Math.round(upR * 100) + '% ・ 下抜け時RSI一致' + Math.round(dnR * 100) + '%<br>上抜け時VWAP一致' + Math.round(upV * 100) + '% ・ 下抜け時VWAP一致' + Math.round(dnV * 100) + '%</div>' +
+            '<div class="freq">%は「同じ側にいた回にブレイク後も同じ方向だった」事後頻度(n=463、2016-2020年)</div>' +
             '</div>';
         }).join('') + '</div>';
     }
@@ -4559,6 +4658,41 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       SR.manual = SR.manual.filter(function (m) { return m.id !== id; });
       srSaveManual(); SR.lastKey = null; computeSR(); renderSR(); renderRangeWatch(); renderPriceChart();
     });
+  }
+
+  /* ---------------- タブ切り替え ----------------
+     非表示(hidden)にしていたタブ内に Chart.js のcanvasがある場合、表示に戻した直後は
+     寸法が確定していないため、resize() を呼んでから再描画させる。
+     どのタブにどの再描画関数を対応させるかは、実際に存在する関数だけを安全に呼ぶ(存在チェック)。 */
+  function bindTabs() {
+    var bar = document.querySelector('.tabbar');
+    if (!bar) return;
+    var btns = Array.prototype.slice.call(bar.querySelectorAll('.tabbar-btn'));
+    if (!btns.length) return;
+    var RERENDER = {
+      'tabpanel-tab1': function () { if (typeof renderPriceChart === 'function') renderPriceChart(); if (typeof renderDecomposition === 'function' && document.querySelector('[data-collapse="decomp"]:not(.collapsed)')) renderDecomposition(); },
+      'tabpanel-tab2': function () { },
+      'tabpanel-tab3': function () { if (typeof renderPriceChart === 'function') renderPriceChart(); if (typeof renderMomentumChart === 'function') renderMomentumChart(); },
+      'tabpanel-tab4': function () { },
+      'tabpanel-tab5': function () { if (typeof renderCalibChart === 'function') renderCalibChart(); }
+    };
+    function activate(id) {
+      btns.forEach(function (b) {
+        var on = b.getAttribute('aria-controls') === id;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      document.querySelectorAll('.tabpanel').forEach(function (p) { p.hidden = p.id !== id; });
+      try { localStorage.setItem('usdjpy_active_tab', id); } catch (e) {}
+      var fn = RERENDER[id];
+      if (fn) setTimeout(fn, 30);
+    }
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () { activate(b.getAttribute('aria-controls')); });
+    });
+    var saved = null;
+    try { saved = localStorage.getItem('usdjpy_active_tab'); } catch (e) {}
+    if (saved && document.getElementById(saved)) activate(saved);
   }
 
   /* ---------------- 描画: 価格チャート上のゾーン ----------------
@@ -4700,6 +4834,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     srLoadManual();
     srEvLoad();
     bindSrUi();
+    bindTabs();
     budget.load();
     state.session = getSessionInfo(new Date());
     computeDataFreshness();
