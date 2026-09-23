@@ -682,6 +682,23 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
 .sr-msg { font-size: var(--text-xs); color: var(--color-error); min-height: 1.2em; }
 .sr-empty { padding: var(--space-4); text-align: center; color: var(--color-text-muted); font-size: var(--text-sm); border: 1px dashed var(--color-border); border-radius: var(--radius-md); }
 @media (max-width: 560px) { .sr-form { grid-template-columns: 1fr; } .sr-row { grid-template-columns: auto 1fr; } .sr-row .sr-side { grid-column: 2; align-items: flex-start; } }
+
+/* ---- レンジ監視(参考値・記述統計) ---- */
+.sr-rw-note { font-size: var(--text-xs); color: var(--color-text-faint); margin: 0 0 var(--space-2); }
+.sr-rw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
+.sr-rw-card { background: var(--color-surface-2); border: 1px solid var(--color-divider); border-radius: var(--radius-md); padding: var(--space-3); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sr-rw-card .k { font-size: var(--text-xs); color: var(--color-text-muted); }
+.sr-rw-card .v { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.sr-rw-card .ref { font-size: var(--text-xs); color: var(--color-text-faint); }
+.sr-rw-bar { position: relative; height: 6px; border-radius: var(--radius-full); background: var(--color-surface-3, var(--color-divider)); margin-top: 4px; overflow: hidden; }
+.sr-rw-bar > i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--color-primary); border-radius: var(--radius-full); }
+.sr-rw-alerts { display: flex; flex-direction: column; gap: var(--space-2); }
+.sr-rw-alert { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--color-border); background: var(--color-surface-2); border-radius: var(--radius-md); }
+.sr-rw-alert .dir { font-weight: 600; font-size: var(--text-xs); padding: 2px 8px; border-radius: var(--radius-full); border: 1px solid var(--color-border); color: var(--color-text-muted); white-space: nowrap; }
+.sr-rw-alert .body { min-width: 0; font-size: var(--text-xs); color: var(--color-text-muted); }
+.sr-rw-alert .body b { color: var(--color-text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.sr-rw-alert .freq { font-size: var(--text-xs); color: var(--color-text-faint); text-align: right; white-space: nowrap; }
+@media (max-width: 560px) { .sr-rw-alert { grid-template-columns: 1fr; } .sr-rw-alert .freq { text-align: left; } }
 </style>
 </head>
 <body>
@@ -768,6 +785,10 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     </div>
     <p class="strategy-note" id="sr-caveat">水準の「強さ」と、いまの価格の「反応の状態」を表示します。売買の方向は予測しません。反応の記録を蓄積し、有効性を検証してから、確率の表示に進みます。</p>
     <div class="sr-summary" id="sr-summary" aria-live="polite"></div>
+
+    <!-- ============ レンジ監視(参考値・記述統計) ============ -->
+    <div class="sr-rangewatch" id="sr-rangewatch" aria-live="polite"></div>
+
     <div class="sr-list" id="sr-list"></div>
     <form class="sr-form" id="sr-form" autocomplete="off">
       <label>手入力する価格(円)<input id="sr-in-price" inputmode="decimal" placeholder="例 155.30" aria-describedby="sr-msg"></label>
@@ -3426,6 +3447,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     srRecordTransitions();     /* 反応の状態が変わった瞬間だけを記録(先読みなし) */
     srResolveOutcomes();       /* 3時間たった記録の結果を、確定足で埋める */
     renderSR();
+    renderRangeWatch();
     renderPriceChart();
     renderMomentumChart();
     renderHtfKpi();
@@ -4115,6 +4137,40 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       return res;
     }
   
+    /* ---------- タッチの測定(1時間足版、レンジ監視パネル用) ----------
+       考え方は measureTouches と同じだが、1時間足を使う。
+       同一足内の複数回接触は1回に潰れるため、5分足の値より少なめに出る(参考値としての性質が異なる点に注意)。
+       反応(反発/突破)の判定はせず、接触の有無だけを数える(このパネルでは回数の目安表示にのみ使うため)。 */
+    var TOUCH_GAP_BARS_1H = 4;   // 5分足版TOUCH_GAP_BARS=12を1時間換算(1/4スケール)
+    function measureTouches1h(c1h, lo, hi, atr, sinceMs) {
+      var touchD = P.TOUCH_ATR * atr, i, touches = 0, lastTouchIdx = -1e9;
+      for (i = 0; i < c1h.length; i++) {
+        if (sinceMs && c1h[i].t < sinceMs) continue;
+        var b = c1h[i];
+        var fromAbove = b.l <= hi + touchD && b.l >= lo - touchD && (i === 0 || c1h[i - 1].c > hi);
+        var fromBelow = b.h >= lo - touchD && b.h <= hi + touchD && (i === 0 || c1h[i - 1].c < lo);
+        if (!fromAbove && !fromBelow) continue;
+        if (i - lastTouchIdx < TOUCH_GAP_BARS_1H) continue;
+        lastTouchIdx = i;
+        touches++;
+      }
+      return touches;
+    }
+  
+    /* ---------- ゾーン形成開始の近似 ----------
+       ゾーンを構成する要素(スイング・前日高安・手入力など)のうち、最も古い「時刻つき」要素の時刻を、
+       このレンジが形成され始めた近似時点として扱う。ラウンドナンバー・ピボットなど時刻を持たない要素は、
+       このゾーンが「いつからのものか」を語らないため、対象から外す。
+       時刻つき要素が一つもない場合(節目のみで構成されるゾーン等)は null を返す(=不明。表示側で「不明」扱いにする)。
+       注意: これは検出ロジックの制約による近似値であり、実際にレンジがいつ始まったかを厳密に特定するものではない。 */
+    function zoneFormationStart(g) {
+      var oldest = null;
+      g.items.forEach(function (it) {
+        if (it.t != null && (oldest == null || it.t < oldest)) oldest = it.t;
+      });
+      return oldest;
+    }
+  
     /* ---------- 強度スコア ----------
        素点(種類の合計)+重なりの多様性+反応実績 に、鮮度の減衰をかける。0〜100に写像する。 */
     function scoreZone(g, tm, nowMs) {
@@ -4215,6 +4271,23 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       return keep.sort(function (a, b) { return a.center - b.center; });
     }
   
+    /* ---------- レンジ監視の参考値(記述統計) ----------
+       2016-2020年のUSD/JPY 1時間足データで、このゾーン検出ロジックを1時間足ベースに組み替えて集計した
+       「ブレイクまでの接触回数・値幅」の記述統計。n=463件(ブレイクに至ったレンジのみ)。
+       ・これは過去の頻度の記述であり、優位性の主張ではない。売買のシグナルや根拠ではない。
+       ・接触回数は「1時間足ベース」(このファイルのmeasureTouches1hと同じ数え方)。
+       ・レンジ幅はタッチ点の高安差(pips)。
+       詳細: sr_validation_report.md 系列とは別の分析(2026-09-23実施、記述統計のみ・凍結検証の対象外)。 */
+    var REF_STATS = {
+      touches1h: { all: { mean: 11.0, median: 8 }, within48h: { mean: 3.3, median: 3 }, over48h: { mean: 12.6, median: 10.5 } },
+      rangeWidthPips: { all: { mean: 35.0, median: 31.4 }, within48h: { mean: 23.9, median: 19.3 }, over48h: { mean: 37.3, median: 32.8 } },
+      breakDirRate: {                 // ブレイク直前3本平均、方向を揃えた一致率(全体n=463)
+        rsi: { up: 0.600, down: 0.670 }, vwap: { up: 0.607, down: 0.675 },
+        perfectOrder: { up: 0.269, down: 0.368 }, atrExpand: { up: 0.098, down: 0.154 }
+      },
+      note: 'n=463(2016-2020年)。方向頻度・回数の目安であり、優位性の主張ではない。'
+    };
+  
     /* ---------- メイン ----------
        input: collectCandidates と同じ + c5(確定5分足) + nowMs
        戻り値: { atrPips, zones:[...], nearestUp, nearestDown, params } */
@@ -4233,6 +4306,12 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
         var z = { center: g.center, lo: lo, hi: hi, kinds: g.kinds, items: g.items };
         var tm = measureTouches(c5, lo, hi, atr, sinceMs);
         z.touch = tm;
+        /* レンジ監視パネル用の追加情報: 1時間足ベースの接触回数と、形成開始の近似時刻。
+           接触は「ゾーン形成開始からいままで」を数える(形成開始が不明なら、5分足版と同じ20日窓にフォールバック)。 */
+        var formStart = zoneFormationStart(g);
+        var touchSinceMs = formStart != null ? formStart : sinceMs;
+        z.formStart = formStart;
+        z.touch1h = measureTouches1h(c1h, lo, hi, atr, touchSinceMs);
         var sc = scoreZone(g, tm, nowMs);
         z.score = sc.score; z.scoreParts = sc; z.grade = gradeOf(sc.score);
         z.cls = classify(z, c1h, c5, atr);
@@ -4252,10 +4331,11 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       /* 表示対象は、現在値から±6×ATR以内 かつ 強度がC以外(手入力は常に表示) */
       var shown = zones.filter(function (z) { return Math.abs(z.distAtr) <= 6 && (z.grade !== 'C' || z.manual); });
       shown = thin(shown, atr);
-      return { ok: true, atr: atr, atrPips: atr / P.PIP, zones: shown, all: zones, nearestUp: up, nearestDown: dn, inZone: inZone, params: P };
+      return { ok: true, atr: atr, atrPips: atr / P.PIP, zones: shown, all: zones, nearestUp: up, nearestDown: dn, inZone: inZone, params: P, refStats: REF_STATS };
     }
   
     return { detect: detect, atrOf: atrOf, findSwings: findSwings, roundLevels: roundLevels, cluster: cluster, measureTouches: measureTouches,
+      measureTouches1h: measureTouches1h, zoneFormationStart: zoneFormationStart, refStats: REF_STATS,
       scoreZone: scoreZone, classify: classify, thin: thin, collectCandidates: collectCandidates, KIND: KIND, P: P, gradeOf: gradeOf };
   })();
 
@@ -4374,7 +4454,80 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     }).join('');
   }
 
-  /* ---------------- 手入力 ---------------- */
+  /* ============================================================
+     レンジ監視パネル(参考値・記述統計)
+     ------------------------------------------------------------
+     2016-2020年データで行った記述統計(SR_CORE.refStats)をもとに、
+     いまのゾーンが「過去の分布のどのあたりか」を数値で示すだけのパネル。
+     ・売買判断や優位性の主張は行わない。エントリー・エグジットの基準ではない。
+     ・「ブレイク接近アラート」は、1時間足接触回数が参考中央値に近い near/rejected 状態のゾーンを一覧表示する。
+       方向は「ブレイクした場合、過去データで上/下どちらに抜けた頻度が多かったか」という頻度の参考表示であり、
+       予測ではない(全体では上234件・下229件とほぼ半々)。
+     ============================================================ */
+  function srRwFmtPips(v) { return (isFinite(v) ? v.toFixed(1) : '—') + 'pips'; }
+
+  function renderRangeWatch() {
+    var el = document.getElementById('sr-rangewatch');
+    if (!el) return;
+    var r = SR.result;
+    if (!r || !r.ok || !r.zones.length) { el.innerHTML = ''; return; }
+    var ref = r.refStats || (typeof SR_CORE !== 'undefined' ? SR_CORE.refStats : null);
+    if (!ref) { el.innerHTML = ''; return; }
+
+    /* --- 上段: 現在ゾーン一覧のうち、いま居る/近い水準の接触回数・レンジ幅を、参考分布と並べて表示 --- */
+    var pri = { rejected: 0, near: 1, broken: 2, fake: 2, far: 3 };
+    var watchZones = r.zones.filter(function (z) { return z.grade !== 'C'; })
+      .sort(function (a, b) { return (pri[a.cls.state] - pri[b.cls.state]) || (Math.abs(a.distPips) - Math.abs(b.distPips)); })
+      .slice(0, 3);
+
+    var cardsHtml = watchZones.map(function (z) {
+      var t1h = z.touch1h != null ? z.touch1h : 0;
+      var med = ref.touches1h.all.median;
+      var pct = Math.max(0, Math.min(100, (t1h / (med * 3)) * 100));
+      var widthPips = (z.hi - z.lo) / SR_CORE_PIP();
+      var formTxt = z.formStart != null ? Math.round((Date.now() - z.formStart) / 3600000) + '時間前から' : '形成時期不明';
+      return '<div class="sr-rw-card">' +
+        '<span class="k">' + z.center.toFixed(3) + '(' + srStateText(z) + ')</span>' +
+        '<span class="v">接触 ' + t1h + '回<span class="ref">(1h足)</span></span>' +
+        '<div class="sr-rw-bar"><i style="width:' + pct.toFixed(0) + '%"></i></div>' +
+        '<span class="ref">参考中央値 ' + med + '回 · ' + formTxt + '</span>' +
+        '</div>';
+    }).join('');
+    var summaryHtml = '<p class="sr-rw-note">直近のゾーンの接触回数(1時間足ベース)を、過去の分布の目安(中央値)と並べて表示します。数値が近い/超えているからといって、ブレイクや反発を意味しません。</p>' +
+      '<div class="sr-rw-grid">' + cardsHtml + '</div>';
+
+    /* --- 下段: ブレイク接近の一覧(near/rejectedのうち、接触回数が参考中央値の80%以上に達しているもの) --- */
+    var candidates = r.zones.filter(function (z) {
+      return z.grade !== 'C' && (z.cls.state === 'near' || z.cls.state === 'rejected') && z.touch1h != null;
+    }).map(function (z) {
+      var med48 = ref.touches1h.within48h.median, medAll = ref.touches1h.all.median;
+      var nearMed48 = z.touch1h >= Math.round(med48 * 0.8);
+      var nearMedAll = z.touch1h >= Math.round(medAll * 0.8);
+      return { z: z, nearMed48: nearMed48, nearMedAll: nearMedAll };
+    }).filter(function (c) { return c.nearMed48 || c.nearMedAll; })
+      .sort(function (a, b) { return b.z.touch1h - a.z.touch1h; })
+      .slice(0, 4);
+
+    var alertsHtml = '';
+    if (candidates.length) {
+      alertsHtml = '<p class="sr-rw-note" style="margin-top:var(--space-3)">接触回数が過去の目安に近づいている水準です。方向は「ブレイクした場合に過去どちら向きが多かったか」の頻度で、予測ではありません(参考: 全体で上234件・下229件とほぼ半々)。</p>' +
+        '<div class="sr-rw-alerts">' + candidates.map(function (c) {
+          var z = c.z;
+          var upR = ref.breakDirRate.rsi.up, dnR = ref.breakDirRate.rsi.down;
+          var upV = ref.breakDirRate.vwap.up, dnV = ref.breakDirRate.vwap.down;
+          return '<div class="sr-rw-alert">' +
+            '<span class="dir">方向は未定</span>' +
+            '<div class="body">' + z.center.toFixed(3) + '(強さ' + z.grade + ') · 接触<b>' + z.touch1h + '回</b>(1h足) ' + srStateText(z) + '</div>' +
+            '<div class="freq">上抜け時RSI一致' + Math.round(upR * 100) + '% ・ 下抜け時RSI一致' + Math.round(dnR * 100) + '%<br>上抜け時VWAP一致' + Math.round(upV * 100) + '% ・ 下抜け時VWAP一致' + Math.round(dnV * 100) + '%</div>' +
+            '</div>';
+        }).join('') + '</div>';
+    }
+
+    el.innerHTML = summaryHtml + alertsHtml;
+  }
+  function SR_CORE_PIP() { return (typeof SR_CORE !== 'undefined' && SR_CORE.P && SR_CORE.P.PIP) ? SR_CORE.P.PIP : 0.01; }
+
+
   function srSetMsg(t) { var m = document.getElementById('sr-msg'); if (m) m.textContent = t || ''; }
   function bindSrUi() {
     var form = document.getElementById('sr-form'), list = document.getElementById('sr-list');
@@ -4397,14 +4550,14 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       /* 追加日時を記録する: 価格が動いた後に引いた線かどうかを、後で区別できるようにするため */
       SR.manual.push({ id: 'm' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), v: v, note: note, createdAt: Date.now(), priceAtCreate: ref });
       srSaveManual(); SR.lastKey = null; pIn.value = ''; nIn.value = ''; srSetMsg('');
-      computeSR(); renderSR(); renderPriceChart();
+      computeSR(); renderSR(); renderRangeWatch(); renderPriceChart();
     });
     list.addEventListener('click', function (ev) {
       var b = ev.target.closest ? ev.target.closest('[data-del]') : null;
       if (!b) return;
       var id = b.getAttribute('data-del');
       SR.manual = SR.manual.filter(function (m) { return m.id !== id; });
-      srSaveManual(); SR.lastKey = null; computeSR(); renderSR(); renderPriceChart();
+      srSaveManual(); SR.lastKey = null; computeSR(); renderSR(); renderRangeWatch(); renderPriceChart();
     });
   }
 
