@@ -743,25 +743,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
   <!-- ============ Event risk banner ============ -->
   <div class="market-closed-banner" id="event-risk-banner" hidden></div>
 
-  <!-- ============ Buy/Sell signal ============ -->
-  <section class="cond-panel" id="cond-panel" role="status">
-    <div class="cond-headline flat" id="cond-headline">算出中…</div>
-    <div class="cond-sub" id="cond-sub">5分足・1時間足データを蓄積しています</div>
-    <div class="kpi-grid cond-grid" id="cond-grid"></div>
-    <ul class="integrated-reasons" id="cond-notes"></ul>
-    <div class="cond-model" id="cond-model">値幅モデル: 初期化中</div>
-  </section>
-
-  <!-- ============ タブ切り替え ============ -->
-  <div class="tabbar" role="tablist" aria-label="表示パネルの切り替え">
-      <button type="button" class="tabbar-btn active" id="tabbtn-tab1" role="tab" aria-selected="true" aria-controls="tabpanel-tab1">KPI・サポレジ・要因分解</button>
-      <button type="button" class="tabbar-btn" id="tabbtn-tab2" role="tab" aria-selected="false" aria-controls="tabpanel-tab2">想定変動幅・時間帯適性</button>
-      <button type="button" class="tabbar-btn" id="tabbtn-tab3" role="tab" aria-selected="false" aria-controls="tabpanel-tab3">価格・モメンタム・セッション</button>
-      <button type="button" class="tabbar-btn" id="tabbtn-tab4" role="tab" aria-selected="false" aria-controls="tabpanel-tab4">経済指標カレンダー</button>
-      <button type="button" class="tabbar-btn" id="tabbtn-tab5" role="tab" aria-selected="false" aria-controls="tabpanel-tab5">値幅予測の精度検証</button>
-  </div>
-
-  <div class="tabpanel" id="tabpanel-tab1" role="tabpanel" aria-labelledby="tabbtn-tab1">
+  <!-- ============ KPI(常時表示) ============ -->
     <!-- ============ KPI grid ============ -->
     <section class="kpi-grid" id="kpi-grid" aria-label="主要指標">
       <div class="kpi-card" id="kpi-price">
@@ -796,6 +778,16 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       </div>
     </section>
 
+  <!-- ============ タブ切り替え ============ -->
+  <div class="tabbar" role="tablist" aria-label="表示パネルの切り替え">
+      <button type="button" class="tabbar-btn active" id="tabbtn-tab1" role="tab" aria-selected="true" aria-controls="tabpanel-tab1">サポレジ・要因分解</button>
+      <button type="button" class="tabbar-btn" id="tabbtn-tab2" role="tab" aria-selected="false" aria-controls="tabpanel-tab2">想定変動幅・時間帯適性・相場つき判断</button>
+      <button type="button" class="tabbar-btn" id="tabbtn-tab3" role="tab" aria-selected="false" aria-controls="tabpanel-tab3">価格・モメンタム・セッション</button>
+      <button type="button" class="tabbar-btn" id="tabbtn-tab4" role="tab" aria-selected="false" aria-controls="tabpanel-tab4">経済指標カレンダー</button>
+      <button type="button" class="tabbar-btn" id="tabbtn-tab5" role="tab" aria-selected="false" aria-controls="tabpanel-tab5">値幅予測の精度検証</button>
+  </div>
+
+  <div class="tabpanel" id="tabpanel-tab1" role="tabpanel" aria-labelledby="tabbtn-tab1">
     <!-- ============ サポート/レジスタンス ============ -->
     <section class="panel" id="sr-panel" aria-labelledby="sr-title">
       <div class="panel-head">
@@ -897,6 +889,15 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
         方向性そのものについては425通りの条件と定番パターン8種を検定しましたが、優位性は確認できませんでした。
       </p>
     </section>
+
+    <!-- ============ Buy/Sell signal ============ -->
+    <section class="cond-panel" id="cond-panel" role="status">
+      <div class="cond-headline flat" id="cond-headline">算出中…</div>
+      <div class="cond-sub" id="cond-sub">5分足・1時間足データを蓄積しています</div>
+      <div class="kpi-grid cond-grid" id="cond-grid"></div>
+      <ul class="integrated-reasons" id="cond-notes"></ul>
+      <div class="cond-model" id="cond-model">値幅モデル: 初期化中</div>
+    </section>
   </div>
 
   <div class="tabpanel" id="tabpanel-tab3" role="tabpanel" aria-labelledby="tabbtn-tab3" hidden>
@@ -996,6 +997,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       <p class="strategy-note" id="calib-caveat">値幅予測が実際に当たっているかを、この端末の記録で検証します。</p>
     </section>
   </div>
+
 
 
 
