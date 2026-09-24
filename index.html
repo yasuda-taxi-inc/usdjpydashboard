@@ -826,6 +826,15 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
   </div>
 
   <div class="tabpanel" id="tabpanel-tab2" role="tabpanel" aria-labelledby="tabbtn-tab2" hidden>
+    <!-- ============ Buy/Sell signal ============ -->
+    <section class="cond-panel" id="cond-panel" role="status">
+      <div class="cond-headline flat" id="cond-headline">算出中…</div>
+      <div class="cond-sub" id="cond-sub">5分足・1時間足データを蓄積しています</div>
+      <div class="kpi-grid cond-grid" id="cond-grid"></div>
+      <ul class="integrated-reasons" id="cond-notes"></ul>
+      <div class="cond-model" id="cond-model">値幅モデル: 初期化中</div>
+    </section>
+
     <!-- ============ いまの値幅 (直近1時間の実測 vs 普段) ============ -->
     <section class="panel lv-panel" id="lv-panel">
       <div class="panel-head">
@@ -888,15 +897,6 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
         値幅が大きくても、往復して終わりやすい時間帯(下記の注意時間帯)ではブレイク追随を避けてください。
         方向性そのものについては425通りの条件と定番パターン8種を検定しましたが、優位性は確認できませんでした。
       </p>
-    </section>
-
-    <!-- ============ Buy/Sell signal ============ -->
-    <section class="cond-panel" id="cond-panel" role="status">
-      <div class="cond-headline flat" id="cond-headline">算出中…</div>
-      <div class="cond-sub" id="cond-sub">5分足・1時間足データを蓄積しています</div>
-      <div class="kpi-grid cond-grid" id="cond-grid"></div>
-      <ul class="integrated-reasons" id="cond-notes"></ul>
-      <div class="cond-model" id="cond-model">値幅モデル: 初期化中</div>
     </section>
   </div>
 
@@ -4563,9 +4563,11 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     var ref = r.refStats || (typeof SR_CORE !== 'undefined' ? SR_CORE.refStats : null);
     if (!ref) { el.innerHTML = ''; return; }
 
-    /* --- 上段: 現在ゾーン一覧のうち、いま居る/近い水準の接触回数・レンジ幅を、参考分布と並べて表示 --- */
+    /* --- 上段: 現在ゾーン一覧のうち、いま居る/近い水準の接触回数・レンジ幅を、参考分布と並べて表示 ---
+       手入力ゾーン(z.manual)は強度スコアが低く出やすい(構成要素が単独のため)が、自動検出の水準と同様に
+       この一覧の対象に含める(sr-listパネル本体が「強さCでも手入力は残す」設計にしているのと揃える)。 */
     var pri = { rejected: 0, near: 1, broken: 2, fake: 2, far: 3 };
-    var watchZones = r.zones.filter(function (z) { return z.grade !== 'C'; })
+    var watchZones = r.zones.filter(function (z) { return z.grade !== 'C' || z.manual; })
       .sort(function (a, b) { return (pri[a.cls.state] - pri[b.cls.state]) || (Math.abs(a.distPips) - Math.abs(b.distPips)); })
       .slice(0, 3);
 
@@ -4574,9 +4576,12 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       var med = ref.touches1h.all.median;
       var pct = Math.max(0, Math.min(100, (t1h / (med * 3)) * 100));
       var widthPips = (z.hi - z.lo) / SR_CORE_PIP();
-      var formTxt = z.formStart != null ? Math.round((Date.now() - z.formStart) / 3600000) + '時間前から' : '形成時期不明';
+      var formTxt = z.manual
+        ? (z.formStart != null ? '手入力から' + Math.round((Date.now() - z.formStart) / 3600000) + '時間' : '手入力')
+        : (z.formStart != null ? Math.round((Date.now() - z.formStart) / 3600000) + '時間前から' : '形成時期不明');
+      var manualTag = z.manual ? '<span class="ref">(手入力)</span>' : '';
       return '<div class="sr-rw-card">' +
-        '<span class="k">' + z.center.toFixed(3) + '(' + srStateText(z) + ')</span>' +
+        '<span class="k">' + z.center.toFixed(3) + '(' + srStateText(z) + ')' + manualTag + '</span>' +
         '<span class="v">接触 ' + t1h + '回<span class="ref">(1h足)</span></span>' +
         '<div class="sr-rw-bar"><i style="width:' + pct.toFixed(0) + '%"></i></div>' +
         '<span class="ref">参考中央値 ' + med + '回 · ' + formTxt + '</span>' +
@@ -4585,9 +4590,10 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     var summaryHtml = '<p class="sr-rw-note">直近のゾーンの接触回数(1時間足ベース)を、過去の分布の目安(中央値)と並べて表示します。数値が近い/超えているからといって、ブレイクや反発を意味しません。</p>' +
       '<div class="sr-rw-grid">' + cardsHtml + '</div>';
 
-    /* --- 下段: ブレイク接近の一覧(near/rejectedのうち、接触回数が参考中央値の80%以上に達しているもの) --- */
+    /* --- 下段: ブレイク接近の一覧(near/rejectedのうち、接触回数が参考中央値の80%以上に達しているもの)
+       こちらも手入力ゾーンを対象に含める。 */
     var candidates = r.zones.filter(function (z) {
-      return z.grade !== 'C' && (z.cls.state === 'near' || z.cls.state === 'rejected') && z.touch1h != null;
+      return (z.grade !== 'C' || z.manual) && (z.cls.state === 'near' || z.cls.state === 'rejected') && z.touch1h != null;
     }).map(function (z) {
       var med48 = ref.touches1h.within48h.median, medAll = ref.touches1h.all.median;
       var nearMed48 = z.touch1h >= Math.round(med48 * 0.8);
@@ -4619,9 +4625,10 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
           var vwapTag = vwapPct != null
             ? '<span class="sr-rw-tag ' + vwapCls + '">VWAP ' + (vwapSideUp ? '上' : '下') + ' → 同方向だった事後頻度 ' + vwapPct + '%</span>'
             : '<span class="sr-rw-tag">VWAPデータ不足</span>';
+          var strengthTxt = z.manual ? '手入力' : ('強さ' + z.grade);
           return '<div class="sr-rw-alert">' +
             '<div class="tags">' + rsiTag + vwapTag + '</div>' +
-            '<div class="body">' + z.center.toFixed(3) + '(強さ' + z.grade + ') · 接触<b>' + z.touch1h + '回</b>(1h足) ' + srStateText(z) + '</div>' +
+            '<div class="body">' + z.center.toFixed(3) + '(' + strengthTxt + ') · 接触<b>' + z.touch1h + '回</b>(1h足) ' + srStateText(z) + '</div>' +
             '<div class="freq">%は「同じ側にいた回にブレイク後も同じ方向だった」事後頻度(n=1116、2016-2026年)</div>' +
             '</div>';
         }).join('') + '</div>';
