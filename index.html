@@ -4345,20 +4345,23 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     }
   
     /* ---------- レンジ監視の参考値(記述統計) ----------
-       2016-2020年のUSD/JPY 1時間足データで、このゾーン検出ロジックを1時間足ベースに組み替えて集計した
-       「ブレイクまでの接触回数・値幅」の記述統計。n=463件(ブレイクに至ったレンジのみ)。
+       2016年1月-2026年9月のUSD/JPY 1時間足データ(約10年9ヶ月)で、このゾーン検出ロジックを1時間足ベースに
+       組み替えて集計した「ブレイクまでの接触回数・値幅」の記述統計。n=1116件(ブレイクに至ったレンジのみ)。
        ・これは過去の頻度の記述であり、優位性の主張ではない。売買のシグナルや根拠ではない。
        ・接触回数は「1時間足ベース」(このファイルのmeasureTouches1hと同じ数え方)。
-       ・レンジ幅はタッチ点の高安差(pips)。
-       詳細: sr_validation_report.md 系列とは別の分析(2026-09-23実施、記述統計のみ・凍結検証の対象外)。 */
+       ・レンジ幅はタッチ点の高安差(pips)。2021年以降はボラティリティが2016-2020年の約1.4倍高く、
+         レンジ幅の絶対値(pips)はそれに連動して大きい。事後頻度(breakDirRate)も期間を分けて計算すると
+         2016-2020年単独より2021-2026年単独の方が高く出ており(例: RSI上一致 60%→73%)、この10年9ヶ月の
+         値はその中間。期間によって変動する参考値であり、固定的な優位性を示すものではない。
+       詳細: sr_validation_report.md 系列とは別の分析(2026-09-23実施・2026-09-24全期間更新、記述統計のみ・凍結検証の対象外)。 */
     var REF_STATS = {
-      touches1h: { all: { mean: 11.0, median: 8 }, within48h: { mean: 3.3, median: 3 }, over48h: { mean: 12.6, median: 10.5 } },
-      rangeWidthPips: { all: { mean: 35.0, median: 31.4 }, within48h: { mean: 23.9, median: 19.3 }, over48h: { mean: 37.3, median: 32.8 } },
-      breakDirRate: {                 // ブレイク直前3本平均、方向を揃えた一致率(全体n=463)
-        rsi: { up: 0.600, down: 0.670 }, vwap: { up: 0.607, down: 0.675 },
-        perfectOrder: { up: 0.269, down: 0.368 }, atrExpand: { up: 0.098, down: 0.154 }
+      touches1h: { all: { mean: 10.5, median: 7 }, within48h: { mean: 3.1, median: 3 }, over48h: { mean: 12.3, median: 10 } },
+      rangeWidthPips: { all: { mean: 45.1, median: 37.1 }, within48h: { mean: 28.3, median: 23.7 }, over48h: { mean: 48.8, median: 40.6 } },
+      breakDirRate: {                 // ブレイク直前3本平均、方向を揃えた一致率(全体n=1116)
+        rsi: { up: 0.673, down: 0.714 }, vwap: { up: 0.670, down: 0.718 },
+        perfectOrder: { up: 0.345, down: 0.349 }, atrExpand: { up: 0.212, down: 0.266 }
       },
-      note: 'n=463(2016-2020年)。方向頻度・回数の目安であり、優位性の主張ではない。'
+      note: 'n=1116(2016年1月-2026年9月、約10年9ヶ月)。方向頻度・回数の目安であり、優位性の主張ではない。'
     };
   
     /* ---------- メイン ----------
@@ -4617,7 +4620,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
           return '<div class="sr-rw-alert">' +
             '<div class="tags">' + rsiTag + vwapTag + '</div>' +
             '<div class="body">' + z.center.toFixed(3) + '(強さ' + z.grade + ') · 接触<b>' + z.touch1h + '回</b>(1h足) ' + srStateText(z) + '</div>' +
-            '<div class="freq">%は「同じ側にいた回にブレイク後も同じ方向だった」事後頻度(n=463、2016-2020年)</div>' +
+            '<div class="freq">%は「同じ側にいた回にブレイク後も同じ方向だった」事後頻度(n=1116、2016-2026年)</div>' +
             '</div>';
         }).join('') + '</div>';
     }
