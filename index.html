@@ -4620,16 +4620,16 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
           var rsiCls = rsiSideUp ? 'up' : (rsiSideDn ? 'down' : '');
           var vwapCls = vwapSideUp ? 'up' : (vwapSideDn ? 'down' : '');
           var rsiTag = rsiPct != null
-            ? '<span class="sr-rw-tag ' + rsiCls + '">RSI ' + (rsiSideUp ? '50超' : '50未満') + ' → 同方向だった事後頻度 ' + rsiPct + '%</span>'
+            ? '<span class="sr-rw-tag ' + rsiCls + '">RSI ' + (rsiSideUp ? '50超で上抜け' : '50未満で下抜け') + ': 過去' + rsiPct + '%</span>'
             : '<span class="sr-rw-tag">RSIデータ不足</span>';
           var vwapTag = vwapPct != null
-            ? '<span class="sr-rw-tag ' + vwapCls + '">VWAP ' + (vwapSideUp ? '上' : '下') + ' → 同方向だった事後頻度 ' + vwapPct + '%</span>'
+            ? '<span class="sr-rw-tag ' + vwapCls + '">VWAP ' + (vwapSideUp ? '上で上抜け' : '下で下抜け') + ': 過去' + vwapPct + '%</span>'
             : '<span class="sr-rw-tag">VWAPデータ不足</span>';
           var strengthTxt = z.manual ? '手入力' : ('強さ' + z.grade);
           return '<div class="sr-rw-alert">' +
             '<div class="tags">' + rsiTag + vwapTag + '</div>' +
             '<div class="body">' + z.center.toFixed(3) + '(' + strengthTxt + ') · 接触<b>' + z.touch1h + '回</b>(1h足) ' + srStateText(z) + '</div>' +
-            '<div class="freq">%は「同じ側にいた回にブレイク後も同じ方向だった」事後頻度(n=1116、2016-2026年)</div>' +
+            '<div class="freq">「RSI 50超で上抜け」等は、過去そのRSI/VWAPの状態から実際に上抜けした頻度(n=1116、2016-2026年)</div>' +
             '</div>';
         }).join('') + '</div>';
     }
