@@ -996,6 +996,29 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       <div class="chart-wrap short"><canvas id="chart-calib"></canvas></div>
       <p class="strategy-note" id="calib-caveat">値幅予測が実際に当たっているかを、この端末の記録で検証します。</p>
     </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">レンジ監視ブレイク判定の精度検証</span>
+        <span class="panel-note" id="rwcalib-note">記録を読み込み中…</span>
+      </div>
+      <div class="hist-toolbar">
+        <span class="hist-status" id="rwcalib-status">ブレイク接近アラートに出た水準の答え合わせ(72時間後判定)</span>
+        <button class="hist-menu-btn" id="btn-rwcalib-menu" type="button" aria-expanded="false" aria-controls="rwcalib-menu" aria-label="データ操作メニュー">⋯</button>
+      </div>
+      <div class="hist-menu" id="rwcalib-menu" hidden>
+        <button class="jbtn ghost danger" id="btn-rwcalib-clear">記録をすべて消去</button>
+        <p class="hist-menu-note">消去した記録は元に戻せません。</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>区分</th><th>件数</th><th>上抜け</th><th>下抜け</th><th>レンジ内</th></tr></thead>
+          <tbody id="rwcalib-body"><tr class="empty-row"><td colspan="5">蓄積中…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="chart-wrap short"><canvas id="chart-rwcalib"></canvas></div>
+      <p class="strategy-note" id="rwcalib-caveat">ブレイク接近アラートに出た水準が、実際にその後どうなったかを、この端末の記録で確認します。</p>
+    </section>
   </div>
 
 
@@ -1030,6 +1053,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
   
 
   
+
 
 
 
@@ -3499,6 +3523,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     renderDecomposition();
     renderApiStatus();
     captureSignalSnapshot();   /* [#14] 確定足ごとにシグナルを保存 */
+    srRwCaptureCycle();        /* レンジ監視: ブレイク接近アラートの答え合わせを記録・判定 */
   }
 
   /* [修正1] 成功していても鮮度が落ちたら警告する (旧実装はfetch失敗時しか判定しなかった) */
@@ -3532,7 +3557,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
      ============================================================ */
 
   /* ---------------- ストレージ層 ---------------- */
-  var DB = { name: 'usdjpy_monitor_v1', ver: 1, conn: null, usable: null, mode: '判定中' };
+  var DB = { name: 'usdjpy_monitor_v1', ver: 2, conn: null, usable: null, mode: '判定中' };
 
   function idbRef() {
     try { return (typeof indexedDB !== 'undefined') ? indexedDB : null; } catch (e) { return null; }
@@ -3550,6 +3575,7 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
         var db = ev.target.result;
         if (!db.objectStoreNames.contains('signals')) db.createObjectStore('signals', { keyPath: 't' });
         if (!db.objectStoreNames.contains('trades')) db.createObjectStore('trades', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('rw_calib')) db.createObjectStore('rw_calib', { keyPath: 'id' });
       };
       req.onsuccess = function () { DB.conn = req.result; DB.usable = true; DB.mode = 'IndexedDB'; resolve(DB.conn); };
       req.onerror = function () { DB.usable = false; DB.mode = 'localStorage'; reject(req.error || new Error('open失敗')); };
@@ -4423,9 +4449,32 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
       return { ok: true, atr: atr, atrPips: atr / P.PIP, zones: shown, all: zones, nearestUp: up, nearestDown: dn, inZone: inZone, params: P, refStats: REF_STATS, dirState: dirState };
     }
   
+    /* ---------- レンジ監視ブレイク判定の答え合わせ(精度検証用) ----------
+       「ブレイク接近アラート」に出たゾーンについて、そこから一定時間後に実際どうなったかを判定する純関数。
+       記録した時点のゾーン(lo/hi)を軸に、判定時点の1時間足の終値がどちら側にいるかだけを見る簡潔な判定。
+       ・up  : 判定時点の終値がゾーン上端(hi)より上 → 上にブレイク
+       ・down: 判定時点の終値がゾーン下端(lo)より下 → 下にブレイク
+       ・stay: 判定時点の終値がゾーン内、またはゾーンの片側±1ATR以内に留まっている → 反発(レンジ継続)とみなす
+       厳密な「反発」判定(classify_1hのrejected相当)ではなく、時間経過後の位置だけで判定する簡潔版。
+       これはアラート自体の教え合わせ用であり、売買の成績を測るものではない。 */
+    function resolveRangeWatchOutcome(rec, c1h, atr) {
+      // rec: { t, lo, hi, resolveAtMs } / c1h: 直近までの確定1時間足配列 / atr: (未使用、将来の拡張用)
+      if (!c1h.length || c1h[c1h.length - 1].t < rec.resolveAtMs) return null;  // まだ72時間分の足が無い
+      var idx = -1, i;
+      for (i = c1h.length - 1; i >= 0; i--) { if (c1h[i].t <= rec.resolveAtMs) { idx = i; break; } }
+      if (idx < 0) return null;
+      var c = c1h[idx].c;
+      if (c > rec.hi) return 'up';
+      if (c < rec.lo) return 'down';
+      return 'stay';
+    }
+  
     return { detect: detect, atrOf: atrOf, findSwings: findSwings, roundLevels: roundLevels, cluster: cluster, measureTouches: measureTouches,
       measureTouches1h: measureTouches1h, zoneFormationStart: zoneFormationStart, refStats: REF_STATS, rsi1h: rsi1h, sectionVwap1h: sectionVwap1h,
+      resolveRangeWatchOutcome: resolveRangeWatchOutcome,
       scoreZone: scoreZone, classify: classify, thin: thin, collectCandidates: collectCandidates, KIND: KIND, P: P, gradeOf: gradeOf };
+  
+  
   })();
 
   /* ============================================================
@@ -4842,11 +4891,228 @@ tbody tr.new-row { animation: row-in 900ms ease-out; }
     return n;
   }
 
+
+  /* ============================================================
+     レンジ監視「ブレイク接近アラート」の答え合わせ(精度検証)
+     ------------------------------------------------------------
+     アラートに新しく出たゾーンを1件だけ記録し(決着までは同じゾーンを再記録しない)、
+     72時間後にどちら側にいたかを判定して、事後頻度の表示(REF_STATSのbreakDirRate)と
+     照らし合わせられる形で集計する。既存の値幅予測の検証(hist/signals)、既存のSR_EV(反応の記録、
+     3時間・rejected/broken/fake対象)とは、対象イベント・時間軸・保存先とも別(互いを汚さない)。
+     ・「予測が当たったか」ではなく、「アラートに出た水準がその後どうなったか」を貯めるだけ。
+     ・数値が貯まるまでは判定待ちのまま。優位性の主張はしない。
+     ============================================================ */
+  var SR_RW_STORE = 'rw_calib';
+  var SR_RW_HORIZON_MS = 72 * 3600 * 1000;   // 判定までの猶予: 72時間
+  var SR_RW = { recs: [], byK: {}, dirty: [], loaded: false, calib: null };
+
+  function srRwLoad() {
+    return dbGetAll(SR_RW_STORE).then(function (rows) {
+      SR_RW.recs = Array.isArray(rows) ? rows : [];
+      SR_RW.byK = {};
+      SR_RW.recs.forEach(function (r) { SR_RW.byK[r.id] = r; });
+      SR_RW.loaded = true;
+      return SR_RW.recs.length;
+    }).catch(function () { SR_RW.loaded = true; return 0; });
+  }
+
+  function srRwFlush() {
+    if (!SR_RW.dirty.length) return Promise.resolve(0);
+    var batch = SR_RW.dirty.splice(0);
+    return dbPutMany(SR_RW_STORE, batch);
+  }
+
+  function srRwClear() {
+    SR_RW.recs = []; SR_RW.byK = {}; SR_RW.dirty = []; SR_RW.calib = null;
+    return dbClearStore(SR_RW_STORE);
+  }
+
+  /* 「1ゾーンにつき1回だけ」を担保するためのオープン中(未決着)キー集合。
+     決着(outcomeが付く)まで、同じゾーンキーは再記録しない。 */
+  function srRwOpenKeys() {
+    var open = {};
+    SR_RW.recs.forEach(function (r) { if (r.outcome == null) open[r.key] = true; });
+    return open;
+  }
+
+  /* 確定足ごとに呼ぶ。レンジ監視パネルの「ブレイク接近アラート」条件(near/rejected かつ
+     接触回数が参考中央値の80%以上)を満たすゾーンのうち、いま未決着の記録が無いものだけを新規記録する。
+     アラートパネル自体のロジック(renderRangeWatch内)と条件を合わせてあるので、
+     表示されているアラートと記録内容は一致する。 */
+  function srRwPlanCaptures(zones, ref, dirState, nowMs) {
+    if (!ref) return [];
+    var open = srRwOpenKeys();
+    var out = [];
+    zones.filter(function (z) {
+      return (z.grade !== 'C' || z.manual) && (z.cls.state === 'near' || z.cls.state === 'rejected') && z.touch1h != null;
+    }).forEach(function (z) {
+      var med48 = ref.touches1h.within48h.median, medAll = ref.touches1h.all.median;
+      var nearAlert = z.touch1h >= Math.round(med48 * 0.8) || z.touch1h >= Math.round(medAll * 0.8);
+      if (!nearAlert) return;
+      var key = srZoneKey(z);
+      if (open[key]) return;                     // すでに未決着の記録がある → 再記録しない
+      out.push({
+        id: key + '_' + nowMs, key: key, t: nowMs, resolveAtMs: nowMs + SR_RW_HORIZON_MS,
+        zc: +z.center.toFixed(3), lo: +z.lo.toFixed(3), hi: +z.hi.toFixed(3),
+        gr: z.grade, man: z.manual ? 1 : 0, tch: z.touch1h,
+        rsiAbove50: dirState ? dirState.rsiAbove50 : null,
+        priceAboveVwap: dirState ? dirState.priceAboveVwap : null,
+        outcome: null
+      });
+    });
+    return out;
+  }
+
+  function srRwRecordCaptures() {
+    var r = SR.result;
+    if (!SR_RW.loaded || !r || !r.ok) return 0;
+    var bars = state.candles5mClosed;
+    if (!bars || !bars.length) return 0;
+    var nowMs = bars[bars.length - 1].t;          // 確定足の時刻を基準にする(Date.now()は使わない。
+                                                     // テスト環境の仮想時計と実運用のどちらでも、確定足の
+                                                     // 時刻は常に正しい値になるため、既存のSR_EVと同じ考え方)
+    var ref = r.refStats || (typeof SR_CORE !== 'undefined' ? SR_CORE.refStats : null);
+    var planned = srRwPlanCaptures(r.zones, ref, r.dirState, nowMs);
+    if (!planned.length) return 0;
+    planned.forEach(function (rec) { SR_RW.recs.push(rec); SR_RW.byK[rec.id] = rec; SR_RW.dirty.push(rec); });
+    return planned.length;
+  }
+
+  /* 判定: resolveAtMsを過ぎた未決着レコードについて、その時点までの1時間足を使って
+     up/down/stay を判定する。判定自体の「まだ早すぎないか」は resolveRangeWatchOutcome が
+     確定足の時刻だけで見る(Date.now()には頼らない。テスト環境の仮想時計でも、本番でも同じロジックで動く)。 */
+  function srRwResolveOutcomes() {
+    var c1h = state.candles1hClosed;
+    if (!c1h || !c1h.length || !SR_RW.recs.length) return 0;
+    var n = 0;
+    SR_RW.recs.forEach(function (r) {
+      if (r.outcome != null) return;
+      var side = (typeof SR_CORE !== 'undefined' && SR_CORE.resolveRangeWatchOutcome) ? SR_CORE.resolveRangeWatchOutcome(r, c1h, null) : null;
+      if (!side) return;                          // まだ72時間分の1h足が無ければ判定を待つ
+      r.outcome = side === 'up' ? 'break_up' : (side === 'down' ? 'break_down' : 'stay');
+      r.resolvedAt = c1h[c1h.length - 1].t;
+      SR_RW.dirty.push(r);
+      n++;
+    });
+    if (n) srRwFlush();
+    return n;
+  }
+
+  function srRwComputeCalibration() {
+    var done = SR_RW.recs.filter(function (r) { return r.outcome != null; });
+    var pending = SR_RW.recs.length - done.length;
+    if (!done.length) { SR_RW.calib = { n: 0, pending: pending }; return SR_RW.calib; }
+    function tally(list) {
+      var up = 0, down = 0, stay = 0;
+      list.forEach(function (r) { if (r.outcome === 'break_up') up++; else if (r.outcome === 'break_down') down++; else stay++; });
+      var n = list.length;
+      return { n: n, up: up, down: down, stay: stay,
+        upPct: n ? up / n * 100 : null, downPct: n ? down / n * 100 : null, stayPct: n ? stay / n * 100 : null };
+    }
+    var overall = tally(done);
+    var byRsiUp = tally(done.filter(function (r) { return r.rsiAbove50 === true; }));
+    var byRsiDown = tally(done.filter(function (r) { return r.rsiAbove50 === false; }));
+    var byVwapUp = tally(done.filter(function (r) { return r.priceAboveVwap === true; }));
+    var byVwapDown = tally(done.filter(function (r) { return r.priceAboveVwap === false; }));
+    SR_RW.calib = { n: done.length, pending: pending, overall: overall,
+      byRsiUp: byRsiUp, byRsiDown: byRsiDown, byVwapUp: byVwapUp, byVwapDown: byVwapDown };
+    return SR_RW.calib;
+  }
+
+  function srRwCaptureCycle() {
+    if (!SR_RW.loaded) return;
+    srRwRecordCaptures();
+    srRwResolveOutcomes();
+    srRwFlush();
+    srRwComputeCalibration();
+    renderRwCalibration();
+  }
+
+  /* ---------------- 描画: レンジ監視ブレイク判定の精度検証 ---------------- */
+  function renderRwCalibration() {
+    var c = SR_RW.calib;
+    var note = document.getElementById('rwcalib-note');
+    var body = document.getElementById('rwcalib-body');
+    var verdict = document.getElementById('rwcalib-caveat');
+    if (!body) return;
+    if (!c || !c.n) {
+      body.innerHTML = '<tr class="empty-row"><td colspan="5">判定待ち — 各記録は72時間後に、そのゾーンより上下どちらにいたかで判定します</td></tr>';
+      if (note) note.textContent = '保存 ' + SR_RW.recs.length + '件 / 判定済 0件 · ' + DB.mode;
+      if (verdict) verdict.textContent = 'ブレイク接近アラートに出た水準が、実際にその後どうなったかを、この端末の記録で確認します。';
+      return;
+    }
+    if (note) note.textContent = '判定済 ' + c.n + '件 / 判定待ち ' + c.pending + '件 · ' + DB.mode;
+    function row(label, t) {
+      if (!t || !t.n) return '<tr><td>' + label + '</td><td class="tabular">0</td><td class="tabular">—</td><td class="tabular">—</td><td class="tabular">—</td></tr>';
+      return '<tr><td>' + label + '</td><td class="tabular">' + t.n + '</td>' +
+        '<td class="tabular">' + t.upPct.toFixed(0) + '%</td>' +
+        '<td class="tabular">' + t.downPct.toFixed(0) + '%</td>' +
+        '<td class="tabular">' + t.stayPct.toFixed(0) + '%</td></tr>';
+    }
+    body.innerHTML = row('全体', c.overall) + row('記録時RSI 50超', c.byRsiUp) + row('記録時RSI 50未満', c.byRsiDown) +
+      row('記録時VWAP上', c.byVwapUp) + row('記録時VWAP下', c.byVwapDown);
+    if (verdict) {
+      verdict.textContent = 'この端末でアラートに出た水準を記録し、72時間後に上抜け/下抜け/レンジ内(stay)のどれだったかを集計しています。' +
+        '件数が少ないうちは参考になりません。事後頻度の表示(パネル上部の「過去◯%」)は2016-2026年の全期間集計で、こちらはこの端末で今後貯まる記録のみが対象です。' +
+        '優位性の主張ではなく、アラートの実際の内訳を記録するものです。';
+    }
+    renderRwCalibChart();
+  }
+
+  var rwCalibChart;
+  function renderRwCalibChart() {
+    var c = SR_RW.calib, el = document.getElementById('chart-rwcalib');
+    if (!el || !c || !c.n) return;
+    if (typeof Chart === 'undefined') return;
+    var tc = (typeof themeColors === 'function') ? themeColors() : { success: '#2a9d5c', error: '#d64545', text2: '#898781' };
+    var labels = ['全体', 'RSI50超', 'RSI50未満', 'VWAP上', 'VWAP下'];
+    var rows = [c.overall, c.byRsiUp, c.byRsiDown, c.byVwapUp, c.byVwapDown];
+    var up = rows.map(function (t) { return t && t.n ? t.upPct : null; });
+    var down = rows.map(function (t) { return t && t.n ? t.downPct : null; });
+    var stay = rows.map(function (t) { return t && t.n ? t.stayPct : null; });
+    if (rwCalibChart) rwCalibChart.destroy();
+    rwCalibChart = new Chart(el, {
+      type: 'bar',
+      data: { labels: labels, datasets: [
+        { label: '上抜け%', data: up, backgroundColor: tc.error, stack: 's' },
+        { label: '下抜け%', data: down, backgroundColor: tc.success, stack: 's' },
+        { label: 'レンジ内%', data: stay, backgroundColor: tc.text2, stack: 's' }
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }
+    });
+  }
+
+  function bindRwCalibUi() {
+    var menuBtn = document.getElementById('btn-rwcalib-menu');
+    var menu = document.getElementById('rwcalib-menu');
+    if (menuBtn && menu) {
+      var menuOpen = false;
+      menu.hidden = true;
+      menuBtn.addEventListener('click', function () {
+        menuOpen = !menuOpen; menu.hidden = !menuOpen;
+        menuBtn.setAttribute('aria-expanded', menuOpen ? 'true' : 'false');
+      });
+    }
+    var hc = document.getElementById('btn-rwcalib-clear');
+    var clearArmed = false, clearTimer = null;
+    if (hc) hc.addEventListener('click', function () {
+      if (!clearArmed) {
+        clearArmed = true; hc.textContent = 'もう一度押すと消去されます'; hc.classList.add('armed');
+        clearTimer = setTimeout(function () { clearArmed = false; hc.textContent = '記録をすべて消去'; hc.classList.remove('armed'); }, 5000);
+        return;
+      }
+      clearTimeout(clearTimer); clearArmed = false; hc.textContent = '記録をすべて消去'; hc.classList.remove('armed');
+      srRwClear().then(function () { srRwComputeCalibration(); renderRwCalibration(); });
+    });
+  }
+
   function boot() {
     srLoadManual();
     srEvLoad();
     bindSrUi();
     bindTabs();
+    bindRwCalibUi();
+    srRwLoad().then(function () { srRwComputeCalibration(); renderRwCalibration(); });
     budget.load();
     state.session = getSessionInfo(new Date());
     computeDataFreshness();
